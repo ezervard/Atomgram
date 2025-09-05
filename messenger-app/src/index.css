@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Обеспечиваем корректное отображение кириллицы */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+
+}
+
+/* Контейнер чата занимает всю ширину */
+.chat-container {
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Стили для сообщений */
+.message {
+  max-width: 70%;
+}
+
+/* Стили для прокрутки */
+.scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 #e5e7eb;
+  padding: 1rem;
+}
+
+/* Стили для скроллбара в WebKit-браузерах */
+.scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-container::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+.scroll-container::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 4px;
+}
+
+/* Максимальная ширина сайдбара */
+.sidebar {
+  max-width: 350px;
+}
+
+/* Выравнивание сообщений */
+.message.text-left {
+  margin-left: 30%; /* Чужие сообщения сдвинуты левее */
+}
+.message.text-right {
+  margin-right: 5px; /* Свои сообщения сдвинуты правее для симметрии */
+}
+
+.message-username {
+  font-size: 0.9rem; /* Уменьшенный размер шрифта для имени и фамилии */
+  font-weight: bold;
+}
+.message-text {
+  font-size: 1.2rem; /* Увеличенный размер шрифта для текста сообщения */
+}
+
+.message-selected {
+  background-color: #e0f2fe;
+}
+
+.emoji-button{
+  height: auto;
+
+}
+.sendButton{
+  border-radius: 5px;
+  height: 40px;
+  width: 40px;
+}
+
+.input-dynamic {
+  width: 100%;
+  padding: px;
+  border: none;
+  border-radius: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-y: auto;
+  scrollbar-width: none; /* Разрешаем прокрутку, если текст превышает maxHeight */
+  white-space: pre-wrap; /* Поддержка переноса строк */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+  min-height: 14px;
+  max-height: 150px;
+}
+.input-dynamic.empty:before {
+  content: attr(data-placeholder);
+  color: #a0aec0;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 4px;
+}
+
+.hidden-div {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  width: calc(100% - 104px); /* Учитываем ширину кнопок (32px + 32px) и отступы (20px) */
+  padding: 8px;
+  font-size: 1rem;
+  line-height: 1.5;
+  border: 1px solid transparent; /* Для точного расчёта высоты */
+  opacity: 0; /* Дополнительно скрываем */
+}
+
+.send-button {
+  padding: 5px; /* Уменьшенный размер кнопки */
+  border: transparent;
+  border-left: none;
+  background-color: transparent;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.send-icon {
+  border: transparent;
+  background-color: transparent;
+  border-left: none;
+  height: 30px;
+}
+.emoji-button{
+  background-color: transparent;
+}
+.emoji-button-icon {
+  width: 25px;
+  height: 25px;
+
+}
+
+
+.context-menu {
+  position: fixed;
+  background-color: rgba(147, 150, 167, 0.9);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  border-radius: 4px;
+  padding: 4px 0;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.context-menu-item:hover {
+  background-color: #f3f4f6;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  padding: 16px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 100%;
+}
