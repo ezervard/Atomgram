@@ -2,6 +2,25 @@ import React, { useEffect, useState } from 'react';
 import Picker from 'emoji-picker-react';
 import FilePreview from './FilePreview';
 
+// Кастомная русская локализация
+const russianLocale = {
+  search: 'Поиск',
+  notfound: 'Эмодзи не найдены',
+  categories: {
+    search: 'Результаты поиска',
+    recent: 'Недавно использованные',
+    people: 'Смайлики и люди',
+    nature: 'Животные и природа',
+    foods: 'Еда и напитки',
+    activity: 'Активность',
+    places: 'Путешествия и места',
+    objects: 'Объекты',
+    symbols: 'Символы',
+    flags: 'Флаги',
+    custom: 'Пользовательские'
+  }
+};
+
 const MessageInput = ({
   input,
   setInput,
@@ -198,7 +217,16 @@ const MessageInput = ({
             onMouseLeave={handleEmojiPickerMouseLeave}
             className="absolute bottom-16 right-0 bg-white shadow-lg rounded-md border border-gray-200 z-50"
           >
-            <Picker onEmojiClick={handleEmojiClick} />
+            <Picker 
+              onEmojiClick={handleEmojiClick}
+              skinTonesDisabled={true}
+              searchDisabled={false}
+              previewConfig={{
+                showPreview: false
+              }}
+              width={300}
+              height={400}
+            />
           </div>
         )}
       </div>

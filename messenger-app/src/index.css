@@ -5,7 +5,102 @@
 /* Обеспечиваем корректное отображение кириллицы */
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
 
+/* Улучшенное отображение эмодзи */
+.emoji {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Android Emoji', 'EmojiSymbols', sans-serif;
+  font-size: 1.2em;
+  line-height: 1;
+  display: inline-block;
+  margin: 0 1px;
+}
+
+/* Стили для окна выбора эмодзи */
+.emoji-picker-react {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Android Emoji', 'EmojiSymbols', sans-serif;
+}
+
+/* Перевод категорий эмодзи на русский */
+.emoji-picker-react .emoji-categories button[data-category="recent"]::after {
+  content: "Недавние";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666;
+}
+
+.emoji-picker-react .emoji-categories button[data-category="people"]::after {
+  content: "Люди";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666;
+}
+
+.emoji-picker-react .emoji-categories button[data-category="nature"]::after {
+  content: "Природа";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666;
+}
+
+.emoji-picker-react .emoji-categories button[data-category="foods"]::after {
+  content: "Еда";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666;
+}
+
+.emoji-picker-react .emoji-categories button[data-category="activity"]::after {
+  content: "Активность";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666;
+}
+
+.emoji-picker-react .emoji-categories button[data-category="places"]::after {
+  content: "Места";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666;
+}
+
+.emoji-picker-react .emoji-categories button[data-category="objects"]::after {
+  content: "Объекты";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666;
+}
+
+.emoji-picker-react .emoji-categories button[data-category="symbols"]::after {
+  content: "Символы";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666;
+}
+
+.emoji-picker-react .emoji-categories button[data-category="flags"]::after {
+  content: "Флаги";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666;
 }
 
 /* Контейнер чата занимает всю ширину */

@@ -65,8 +65,9 @@ module.exports = (io) => {
           console.error('Socket.IO: Некорректная структура сообщения:', message);
           return;
         }
-        if (message.username !== socket.user.username) {
-          console.error('Socket.IO: Spoofing username:', message.username);
+        // Проверяем, что сообщение отправлено от правильного пользователя по userId
+        if (message.userId && message.userId !== socket.user.userId) {
+          console.error('Socket.IO: Spoofing userId:', message.userId);
           return;
         }
         const chat = await Chat.findOne({ chatId: message.chat });
@@ -74,17 +75,18 @@ module.exports = (io) => {
           console.error(`Socket.IO: Нет доступа к чату ${message.chat} для ${socket.user.userId}`);
           return;
         }
-        const user = await User.findOne({ username: message.username });
+        const user = await User.findOne({ userId: message.userId || socket.user.userId });
         if (!user) {
-          console.error('Socket.IO: Пользователь не найден:', message.username);
+          console.error('Socket.IO: Пользователь не найден по userId:', message.userId || socket.user.userId);
           return;
         }
         const newMessage = new Message({
+          userId: message.userId || socket.user.userId,
           username: message.username,
           chat: message.chat,
           text: message.text,
           timestamp: new Date(message.timestamp || new Date()),
-          fullName: user.fullName || 'Неизвестный пользователь',
+          fullName: message.fullName || user.fullName || 'Неизвестный пользователь',
           edited: false,
         });
         await newMessage.save();

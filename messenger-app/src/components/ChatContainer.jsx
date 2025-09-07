@@ -5,9 +5,12 @@ import ChatMessages from './ChatMessages';
 import MessageInput from './MessageInput';
 import ContextMenu from './ContextMenu';
 import ForwardModal from './ForwardModal';
+import UserInfoModal from './UserInfoModal';
+import ProfileEditModal from './ProfileEditModal';
 
 const ChatContainer = ({
   user,
+  userId,
   chats,
   users,
   selectedChat,
@@ -58,9 +61,15 @@ const ChatContainer = ({
   handleFileChange,
   uploadProgress,
   isUploading,
+  updateProfile,
 }) => {
   console.log('ChatContainer: Рендеринг с selectedChat:', selectedChat?.chatId);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showUserInfoModal, setShowUserInfoModal] = useState(false);
+  const [selectedUserInfo, setSelectedUserInfo] = useState(null);
+  const [showProfileEditModal, setShowProfileEditModal] = useState(false);
+  const [currentUserInfo, setCurrentUserInfo] = useState(null);
+  
 
   const handleContainerContextMenu = (e) => {
     e.preventDefault();
@@ -87,6 +96,44 @@ const ChatContainer = ({
     if (droppedFiles.length > 0) {
       handleFileChange({ target: { files: droppedFiles } });
     }
+  };
+
+  const handleChatNameClick = () => {
+    if (!selectedChat) return;
+    
+    // Находим пользователя, с которым ведется чат
+    // Сначала попробуем найти по userId, если user содержит userId
+    const otherParticipantId = selectedChat.participants.find(id => {
+      // Если user - это userId (число), сравниваем с id
+      if (typeof user === 'string' && !isNaN(user)) {
+        return id !== user;
+      }
+      // Если user - это fullName, ищем по fullName
+      const currentUser = users.find(u => u.fullName === user);
+      return currentUser ? id !== currentUser.userId : true;
+    });
+    
+    const userInfo = users.find(u => u.userId === otherParticipantId);
+    
+    if (userInfo) {
+      setSelectedUserInfo(userInfo);
+      setShowUserInfoModal(true);
+    }
+  };
+
+  const handleEditProfile = () => {
+    // Находим текущего пользователя в списке users по userId
+    const currentUser = users.find(u => u.userId === userId);
+    
+    if (currentUser) {
+      setCurrentUserInfo(currentUser);
+      setShowProfileEditModal(true);
+    }
+  };
+
+  const handleSaveProfile = async (profileData) => {
+    await updateProfile(profileData);
+    setShowProfileEditModal(false);
   };
 
   useEffect(() => {
@@ -119,6 +166,7 @@ const ChatContainer = ({
         setShowAddressBook={setShowAddressBook}
         setSelectedChat={setSelectedChat}
         createPrivateChat={createPrivateChat}
+        onEditProfile={handleEditProfile}
       />
       <div className="flex-1 flex flex-col relative">
         {/* Drag & Drop индикация */}
@@ -140,9 +188,12 @@ const ChatContainer = ({
           selectedChat={selectedChat}
           selectedMessages={selectedMessages}
           handleLogout={handleLogout}
+          onChatNameClick={handleChatNameClick}
         />
         <ChatMessages
           user={user}
+          userId={userId}
+          users={users}
           selectedChat={selectedChat}
           messages={messages}
           selectedMessages={selectedMessages}
@@ -159,6 +210,8 @@ const ChatContainer = ({
           handleSelectMessage={handleSelectMessage}
           handleForwardMessage={handleForwardMessage}
           user={user}
+          userId={userId}
+          users={users}
           selectedMessages={selectedMessages}
         />
         <ForwardModal
@@ -167,6 +220,17 @@ const ChatContainer = ({
           setForwardMessage={setForwardMessage}
           chats={chats}
           handleForwardToChat={handleForwardToChat}
+        />
+        <UserInfoModal
+          isOpen={showUserInfoModal}
+          onClose={() => setShowUserInfoModal(false)}
+          userInfo={selectedUserInfo}
+        />
+        <ProfileEditModal
+          isOpen={showProfileEditModal}
+          onClose={() => setShowProfileEditModal(false)}
+          userInfo={currentUserInfo}
+          onSave={handleSaveProfile}
         />
         {selectedChat && (
           <MessageInput

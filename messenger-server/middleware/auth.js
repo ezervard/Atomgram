@@ -21,12 +21,31 @@ const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log('Middleware: Токен верифицирован, пользователь:', decoded);
+    console.log('Middleware: Токен верифицирован, пользователь:', {
+      userId: decoded.userId,
+      username: decoded.username,
+      exp: decoded.exp,
+      iat: decoded.iat
+    });
+    
+    // Проверяем срок действия токена
+    const currentTime = Math.floor(Date.now() / 1000);
+    if (decoded.exp && decoded.exp < currentTime) {
+      console.error('Middleware: Токен истек. Время истечения:', new Date(decoded.exp * 1000), 'Текущее время:', new Date());
+      return res.status(403).json({ error: 'Токен истёк' });
+    }
+    
     req.user = decoded;
     next();
   } catch (err) {
     console.error('Middleware: Ошибка верификации токена:', err.message);
-    return res.status(403).json({ error: 'Неверный или истёкший токен' });
+    if (err.name === 'TokenExpiredError') {
+      return res.status(403).json({ error: 'Токен истёк' });
+    } else if (err.name === 'JsonWebTokenError') {
+      return res.status(403).json({ error: 'Неверный токен' });
+    } else {
+      return res.status(403).json({ error: 'Ошибка верификации токена' });
+    }
   }
 };
 

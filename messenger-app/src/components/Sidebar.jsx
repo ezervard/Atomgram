@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaComments, FaUsers, FaUser } from 'react-icons/fa';
+import { FaComments, FaUsers, FaUser, FaCog } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar = ({
@@ -10,6 +10,7 @@ const Sidebar = ({
   setShowAddressBook,
   setSelectedChat,
   createPrivateChat,
+  onEditProfile,
 }) => {
   const handleChatClick = (chat) => {
     setSelectedChat(chat);
@@ -120,6 +121,19 @@ const Sidebar = ({
             )
           )}
         </AnimatePresence>
+      </div>
+      
+      {/* Кнопка редактирования профиля */}
+      <div className="p-4 border-t border-gray-600">
+        <motion.button
+          className="w-full text-left px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex items-center"
+          onClick={onEditProfile}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <FaCog className="mr-2" />
+          Профиль
+        </motion.button>
       </div>
     </div>
   );

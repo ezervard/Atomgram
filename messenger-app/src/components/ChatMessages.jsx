@@ -1,8 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import ImageModal from './ImageModal';
 
-const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setContextMenu, handleMessageClick, messagesEndRef }) => {
+const ChatMessages = ({ user, userId, users, selectedChat, messages, selectedMessages, setContextMenu, handleMessageClick, messagesEndRef }) => {
   const [imageModal, setImageModal] = useState({ isOpen: false, url: '', alt: '' });
+
+  // Функция для определения, является ли сообщение от текущего пользователя
+  const isCurrentUserMessage = (msg) => {
+    // Сначала проверяем по userId (самый надежный способ)
+    if (msg.userId && userId) {
+      return msg.userId === userId;
+    }
+    
+    // Если userId нет, ищем по username в списке пользователей
+    const currentUser = users.find(u => u.userId === userId);
+    if (currentUser) {
+      const currentUserDisplayName = `${currentUser.lastName || ''} ${currentUser.firstName || ''}`.trim() || currentUser.username;
+      // Сравниваем с отображаемым именем (которое уже установлено в msg.username)
+      return msg.username === currentUserDisplayName;
+    }
+    // Если не найден, используем старое сравнение
+    return msg.username === user;
+  };
 
   // Функция для исправления кодировки имени файла
   const fixFileNameEncoding = (fileName) => {
@@ -15,6 +33,29 @@ const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setConte
     } catch (e) {
       return fileName;
     }
+  };
+
+  // Функция для рендеринга текста с поддержкой эмодзи
+  const renderTextWithEmojis = (text) => {
+    if (!text) return '';
+    
+    // Простой подход - используем CSS класс для эмодзи
+    const emojiRegex = /(\p{Emoji_Presentation}|\p{Extended_Pictographic})/gu;
+    const parts = text.split(emojiRegex);
+    
+    return parts.map((part, index) => {
+      if (emojiRegex.test(part)) {
+        // Это эмодзи - используем CSS класс
+        return (
+          <span key={index} className="emoji">
+            {part}
+          </span>
+        );
+      } else {
+        // Обычный текст
+        return part;
+      }
+    });
   };
 
   const handleContextMenu = (e, message) => {
@@ -83,8 +124,8 @@ const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setConte
     // Прокрутка к последнему сообщению
     if (messagesEndRef && messagesEndRef.current) {
       setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
       }, 100);
     }
@@ -101,7 +142,7 @@ const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setConte
             .map((msg, index) => (
             <div
               key={msg._id || `temp-${index}`}
-              className={`mb-4 ${msg.username === user ? 'text-right' : 'text-left'} message ${
+              className={`mb-4 ${isCurrentUserMessage(msg) ? 'text-right' : 'text-left'} message ${
                 selectedMessages.includes(msg._id) ? 'message-selected' : ''
               }`}
               onContextMenu={(e) => handleContextMenu(e, msg)}
@@ -109,12 +150,17 @@ const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setConte
             >
               <div
                 className={`inline-block p-2 rounded-lg select-none ${
-                  msg.username === user ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                }`}
+                  isCurrentUserMessage(msg) ? 'bg-blue-500 text-white' : 'bg-gray-200'
+                } ${(msg.forwardedFrom || msg.originalMessage) ? 'border-l-4 border-blue-400' : ''}`}
                 style={{ wordBreak: 'break-word', overflowWrap: 'break-word', maxWidth: '70%' }}
               >
-                <p className="message-username select-none">{msg.fullName || 'Неизвестный пользователь'}</p>
-                {msg.text && <p className="message-text select-text">{msg.text}</p>}
+                <p className="message-username select-none">
+                  {msg.fullName || msg.username || 'Неизвестный пользователь'}
+                  {(msg.forwardedFrom || msg.originalMessage) && (
+                    <span className="text-xs opacity-75 ml-1">📤</span>
+                  )}
+                </p>
+                {msg.text && <p className="message-text select-text">{renderTextWithEmojis(msg.text)}</p>}
                 {msg.files && msg.files.length > 0 && (
                   <div className="mt-2 space-y-2">
                     {msg.files.map((file, fileIndex) => {
@@ -160,10 +206,10 @@ const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setConte
                           <div key={fileIndex} className="mt-2">
                             <div className="relative group">
                               <img
-                                src={`http://10.185.101.19:8080${file.url}`}
+                                src={`такhttp://192.168.2.15:8080${file.url}`}
                                 alt={displayName}
                                 className="max-w-xs max-h-64 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
-                                onClick={() => openImageModal(`http://10.185.101.19:8080${file.url}`, displayName)}
+                                onClick={() => openImageModal(`http://192.168.2.15:8080${file.url}`, displayName)}
                                 onError={(e) => {
                                   e.target.style.display = 'none';
                                   e.target.nextSibling.style.display = 'flex';
@@ -185,7 +231,7 @@ const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setConte
                                   </div>
                                 </div>
                                 <a
-                                  href={`http://10.185.101.19:8080${file.url}`}
+                                  href={`http://192.168.2.15:8080${file.url}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="ml-2 text-blue-500 hover:text-blue-700 transition-colors"
@@ -205,7 +251,7 @@ const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setConte
                           <div key={fileIndex} className="mt-2">
                             <div className="relative group">
                               <video
-                                src={`http://10.185.101.19:8080${file.url}`}
+                                src={`http://192.168.2.15:8080${file.url}`}
                                 controls
                                 className="max-w-xs max-h-64 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
                                 onError={(e) => {
@@ -231,7 +277,7 @@ const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setConte
                                   </div>
                                 </div>
                                 <a
-                                  href={`http://10.185.101.19:8080${file.url}`}
+                                  href={`http://192.168.2.15:8080${file.url}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="ml-2 text-blue-500 hover:text-blue-700 transition-colors"
@@ -239,8 +285,8 @@ const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setConte
                                   <svg className="w-4 h-4 select-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                   </svg>
-                                </a>
-                              </div>
+                        </a>
+                      </div>
                             </div>
                           </div>
                         );
@@ -250,7 +296,7 @@ const ChatMessages = ({ user, selectedChat, messages, selectedMessages, setConte
                         <div 
                           key={fileIndex} 
                           className="flex items-center p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
-                          onClick={() => handleFileDownload(`http://10.185.101.19:8080${file.url}`, displayName)}
+                          onClick={() => handleFileDownload(`http://192.168.2.15:8080${file.url}`, displayName)}
                         >
                           <span className="text-lg mr-3">
                             {getFileIcon(file.type)}

@@ -42,7 +42,6 @@ function App() {
     setEditingMessage,
     selectedMessages,
     setSelectedMessages,
-    userFullName,
     files,
     setFiles,
     removeFile,
@@ -72,6 +71,7 @@ function App() {
     handleSendButtonMouseDown,
     handleSendButtonMouseUp,
     handleFileChange,
+    updateProfile,
   } = useChat();
 
   return (
@@ -79,6 +79,7 @@ function App() {
       {user ? (
         <ChatContainer
           user={user}
+          userId={userId}
           chats={chats}
           users={users}
           selectedChat={selectedChat}
@@ -129,6 +130,7 @@ function App() {
           handleFileChange={handleFileChange}
           uploadProgress={uploadProgress}
           isUploading={isUploading}
+          updateProfile={updateProfile}
         />
       ) : (
         <AuthContainer

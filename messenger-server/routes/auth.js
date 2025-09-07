@@ -74,11 +74,59 @@ router.post('/logout', (req, res) => {
 router.get('/users', authenticateToken, async (req, res) => { // Добавили auth
   console.log('GET /auth/users');
   try {
-    const users = await User.find({}, 'userId username fullName email status');
+    const users = await User.find({}, 'userId username firstName lastName patronymic fullName email status');
     console.log('Загружены пользователи:', users);
     res.json(users);
   } catch (err) {
     console.error('Ошибка загрузки пользователей:', err.message);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+router.put('/profile', authenticateToken, async (req, res) => {
+  console.log('PUT /auth/profile');
+  try {
+    const { firstName, lastName, patronymic, email, status } = req.body;
+    const userId = req.user.userId;
+    
+    // Проверяем, что email не занят другим пользователем
+    if (email) {
+      const existingUser = await User.findOne({ 
+        email, 
+        userId: { $ne: userId } 
+      });
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email уже используется другим пользователем' });
+      }
+    }
+    
+    // Обновляем профиль
+    const updateData = {
+      firstName,
+      lastName,
+      patronymic,
+      fullName: `${firstName} ${lastName} ${patronymic}`.trim(),
+      status
+    };
+    
+    if (email) {
+      updateData.email = email;
+    }
+    
+    const updatedUser = await User.findOneAndUpdate(
+      { userId },
+      updateData,
+      { new: true, select: 'userId username firstName lastName patronymic fullName email status' }
+    );
+    
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+    
+    console.log('Профиль обновлен:', updatedUser);
+    res.json(updatedUser);
+  } catch (err) {
+    console.error('Ошибка обновления профиля:', err.message);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

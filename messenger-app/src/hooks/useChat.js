@@ -3,7 +3,7 @@ import io from 'socket.io-client';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://10.185.101.19:8080';
+const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.2.15:8080';
 const socket = io(API_URL, { autoConnect: false });
 
 const useChat = () => {
@@ -36,7 +36,6 @@ const useChat = () => {
   const [forwardMessage, setForwardMessage] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [selectedMessages, setSelectedMessages] = useState([]);
-  const [userFullName, setUserFullName] = useState(null);
   const [files, setFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -75,9 +74,17 @@ const useChat = () => {
       try {
         const decoded = jwtDecode(token);
         console.log('Декодированный токен:', decoded);
+        
+        // Проверяем срок действия токена
+        const currentTime = Date.now() / 1000;
+        if (decoded.exp && decoded.exp < currentTime) {
+          console.log('Токен истек, выходим из системы');
+          handleLogout();
+          return;
+        }
+        
         setUser(decoded.username);
         setUserId(decoded.userId);
-        setUserFullName(decoded.fullName || 'Неизвестный пользователь');
         socket.auth = { token };
         socket.connect();
         fetchUsers();
@@ -87,32 +94,44 @@ const useChat = () => {
       }
     }
 
+    socket.on('connect', () => {
+    });
+
+    socket.on('disconnect', () => {
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket.IO: Ошибка подключения:', error);
+    });
+
     socket.on('message', (message) => {
-      console.log('Получено новое сообщение:', message);
-      console.log('Сообщение содержит файлы:', message.files);
+      // Обновляем имя в новом сообщении
+      const updatedMessage = updateMessageNames([message])[0];
+      
       setMessages((prev) => ({
         ...prev,
-        [message.chat]: [...(prev[message.chat] || []), message],
+        [message.chat]: [...(prev[message.chat] || []), updatedMessage],
       }));
       
       // Сбрасываем состояние загрузки при получении сообщения
-      console.log('useChat: Получено сообщение, сбрасываем состояние загрузки');
       setIsUploading(false);
       setUploadProgress(0);
     });
 
     socket.on('messageUpdated', (message) => {
-      console.log('Сообщение обновлено:', message);
+      
+      // Обновляем имя в обновленном сообщении
+      const updatedMessage = updateMessageNames([message])[0];
+      
       setMessages((prev) => ({
         ...prev,
         [message.chat]: prev[message.chat].map((msg) =>
-          msg._id === message._id ? message : msg
+          msg._id === message._id ? updatedMessage : msg
         ),
       }));
     });
 
     socket.on('messageDeleted', ({ messageId, chatId }) => {
-      console.log('Сообщение удалено:', messageId, 'в чате:', chatId);
       setMessages((prev) => ({
         ...prev,
         [chatId]: (prev[chatId] || []).filter((msg) => msg._id !== messageId),
@@ -121,7 +140,6 @@ const useChat = () => {
     });
 
     socket.on('userStatus', ({ userId, status }) => {
-      console.log(`Статус пользователя ${userId}: ${status}`);
       setUsers((prev) =>
         prev.map((u) => (u.userId === userId ? { ...u, status } : u))
       );
@@ -182,6 +200,20 @@ const useChat = () => {
     }
   }, [user, selectedChat]);
 
+  // Обновляем имена в сообщениях при изменении списка пользователей
+  useEffect(() => {
+    if (users.length > 0 && Object.keys(messages).length > 0) {
+      console.log('Обновляем имена в сообщениях при изменении пользователей');
+      setMessages(prevMessages => {
+        const updatedMessages = { ...prevMessages };
+        Object.keys(updatedMessages).forEach(chatId => {
+          updatedMessages[chatId] = updateMessageNames(updatedMessages[chatId]);
+        });
+        return updatedMessages;
+      });
+    }
+  }, [users]);
+
   const fetchUsers = async () => {
     try {
       const response = await fetch(`${API_URL}/auth/users`, {
@@ -195,6 +227,7 @@ const useChat = () => {
       const data = await response.json();
       console.log('Загружены пользователи:', data);
       setUsers(data);
+      
     } catch (error) {
       console.error('Ошибка загрузки пользователей:', error);
       toast.error('Ошибка загрузки пользователей: ' + error.message);
@@ -209,7 +242,7 @@ const useChat = () => {
         toast.error('userId не установлен');
         return;
       }
-      console.log(`Загрузка чатов для userId: ${userId}, userFullName: ${userFullName}`);
+      console.log(`Загрузка чатов для userId: ${userId}`);
       const response = await fetch(`${API_URL}/chats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -224,7 +257,7 @@ const useChat = () => {
         if (chat.type === 'private') {
           const isSelfChat = chat.participants[0] === chat.participants[1];
           if (isSelfChat) {
-            const participantUser = users.find((u) => u.userId === chat.participants[0]) || { fullName: userFullName || 'Я' };
+            const participantUser = users.find((u) => u.userId === chat.participants[0]) || { fullName: 'Я' };
             const chatName = participantUser.fullName || 'Я';
             console.log(`Чат с самим собой: ${chat.chatId}, имя: ${chatName}`);
             return { ...chat, name: chatName };
@@ -258,9 +291,39 @@ const useChat = () => {
     }
   };
 
+  const updateMessageNames = (messages) => {
+    return messages.map(msg => {
+      // Сначала ищем по userId (приоритетный способ)
+      let user = null;
+      if (msg.userId) {
+        user = users.find(u => u.userId === msg.userId);
+      }
+      
+      // Если не найден по userId, ищем по username (для старых сообщений)
+      if (!user) {
+        user = users.find(u => u.username === msg.username);
+      }
+      
+      // Если не найден по username, ищем по fullName
+      if (!user) {
+        user = users.find(u => {
+          const userDisplayName = `${u.lastName || ''} ${u.firstName || ''}`.trim() || u.username;
+          return userDisplayName === msg.username || userDisplayName === msg.fullName;
+        });
+      }
+      
+      if (user) {
+        const displayName = `${user.lastName || ''} ${user.firstName || ''}`.trim() || user.username;
+        return { ...msg, userId: user.userId, username: displayName, fullName: displayName };
+      }
+      
+      // Если пользователь не найден, оставляем сообщение как есть
+      return msg;
+    });
+  };
+
   const fetchMessages = async (chatId) => {
     try {
-      console.log(`Загрузка сообщений для чата ${chatId}`);
       const response = await fetch(`${API_URL}/messages/${chatId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -270,10 +333,13 @@ const useChat = () => {
       }
       if (!response.ok) throw new Error('Не удалось загрузить сообщения');
       const data = await response.json();
-      console.log(`Загружены сообщения для ${chatId}:`, data);
+      
+      // Обновляем имена в сообщениях
+      const updatedMessages = updateMessageNames(data);
+      
       setMessages((prev) => ({
         ...prev,
-        [chatId]: data,
+        [chatId]: updatedMessages,
       }));
     } catch (error) {
       console.error('Ошибка загрузки сообщений:', error);
@@ -309,7 +375,7 @@ const useChat = () => {
       const isSelfChat = otherUserId === userId;
       let chatName;
       if (isSelfChat) {
-        const participantUser = users.find((u) => u.userId === otherUserId) || { fullName: userFullName || 'Я' };
+        const participantUser = users.find((u) => u.userId === otherUserId) || { fullName: 'Я' };
         chatName = participantUser.fullName || 'Я';
       } else {
         const otherUser = users.find((u) => u.userId === otherUserId);
@@ -343,11 +409,16 @@ const useChat = () => {
             lastName: formData.lastName,
             patronymic: formData.patronymic,
           };
+      console.log('Отправка запроса авторизации на:', `${API_URL}${url}`);
+      console.log('Payload:', payload);
+      
       const response = await fetch(`${API_URL}${url}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      
+      console.log('Ответ сервера:', response.status, response.statusText);
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || 'Ошибка сервера');
@@ -355,13 +426,18 @@ const useChat = () => {
       setToken(data.token);
       setUser(data.username);
       setUserId(data.userId);
-      setUserFullName(data.fullName || 'Неизвестный пользователь');
       localStorage.setItem('token', data.token);
       setFormData({ username: '', email: '', password: '', firstName: '', lastName: '', patronymic: '' });
       toast.success(isLogin ? 'Успешный вход' : 'Успешная регистрация');
     } catch (error) {
-      console.error(isLogin ? 'Ошибка входа:' : 'Ошибка регистрации:', error.message);
-      toast.error(isLogin ? 'Ошибка входа: ' + error.message : 'Ошибка регистрации: ' + error.message);
+      console.error(isLogin ? 'Ошибка входа:' : 'Ошибка регистрации:', error);
+      
+      // Проверяем тип ошибки
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        toast.error('Ошибка сети: не удается подключиться к серверу. Проверьте, что сервер запущен на ' + API_URL);
+      } else {
+        toast.error(isLogin ? 'Ошибка входа: ' + error.message : 'Ошибка регистрации: ' + error.message);
+      }
     }
   };
 
@@ -381,7 +457,6 @@ const useChat = () => {
     setUser(null);
     setUserId(null);
     setToken(null);
-    setUserFullName(null);
     setMessages({});
     setChats([]);
     setSelectedChat(null);
@@ -471,19 +546,39 @@ const useChat = () => {
   const handleDeleteMessage = async () => {
     if (!contextMenu.message) return;
     console.log('Удаление сообщения:', contextMenu.message);
+    
+    // Проверяем наличие токена
+    if (!token) {
+      toast.error('Токен авторизации отсутствует');
+      handleLogout();
+      return;
+    }
+    
     try {
       const response = await fetch(`${API_URL}/messages/${contextMenu.message._id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
       });
-      if (response.status === 401 || response.status === 403) {
+      
+      if (response.status === 401) {
+        console.log('Токен истек, выходим из системы');
         handleLogout();
-        throw new Error('Токен недействителен');
+        throw new Error('Сессия истекла, необходимо войти заново');
       }
+      
+      if (response.status === 403) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Нет прав для удаления этого сообщения');
+      }
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Не удалось удалить сообщение');
       }
+      
       toast.success('Сообщение успешно удалено');
     } catch (error) {
       console.error('Ошибка удаления:', error);
@@ -569,6 +664,58 @@ const useChat = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const updateProfile = async (profileData) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка обновления профиля');
+      }
+
+      const updatedUser = await response.json();
+      
+      // Обновляем данные пользователя в состоянии
+      setUser(updatedUser.username);
+      
+      // Обновляем список пользователей
+      setUsers(prevUsers => 
+        prevUsers.map(u => 
+          u.userId === updatedUser.userId ? { ...u, ...updatedUser } : u
+        )
+      );
+      
+      // Обновляем старые сообщения с новым именем
+      const newDisplayName = `${updatedUser.lastName || ''} ${updatedUser.firstName || ''}`.trim() || updatedUser.username;
+      setMessages(prevMessages => {
+        const updatedMessages = { ...prevMessages };
+        Object.keys(updatedMessages).forEach(chatId => {
+          updatedMessages[chatId] = updatedMessages[chatId].map(msg => {
+            if (msg.username === updatedUser.username || msg.username === user) {
+              return { ...msg, username: newDisplayName, fullName: newDisplayName };
+            }
+            return msg;
+          });
+        });
+        return updatedMessages;
+      });
+      
+      toast.success('Профиль успешно обновлен');
+      return updatedUser;
+    } catch (error) {
+      console.error('Ошибка обновления профиля:', error);
+      toast.error('Ошибка обновления профиля: ' + error.message);
+      throw error;
+    }
+  };
+
   const sendMessage = async () => {
     if (!input.trim() && files.length === 0) return;
     if (!user || !selectedChat) return;
@@ -594,8 +741,14 @@ const useChat = () => {
           const formData = new FormData();
           files.forEach((file) => formData.append('files', file));
           formData.append('chatId', selectedChat.chatId);
+          formData.append('userId', userId);
           formData.append('username', user);
-          formData.append('fullName', userFullName || 'Неизвестный пользователь');
+          // Находим текущего пользователя для получения актуального имени
+          const currentUser = users.find(u => u.userId === userId);
+          const displayName = currentUser ? 
+            `${currentUser.lastName || ''} ${currentUser.firstName || ''}`.trim() || currentUser.username :
+            user;
+          formData.append('fullName', displayName);
           formData.append('text', input);
 
           console.log('Загрузка файлов:', files.map((f) => f.name));
@@ -656,12 +809,20 @@ const useChat = () => {
           setIsUploading(false);
         }
       } else {
+        // Находим текущего пользователя в списке users для получения firstName и lastName
+        const currentUser = users.find(u => u.userId === userId);
+        const displayName = currentUser ? 
+          `${currentUser.lastName || ''} ${currentUser.firstName || ''}`.trim() || currentUser.username :
+          user;
+        
+        console.log('Отправка сообщения - user:', user, 'currentUser:', currentUser, 'displayName:', displayName);
         const message = {
-          username: user,
+          userId: userId,
+          username: displayName,
           chat: selectedChat.chatId,
           text: input,
           type: 'text',
-          fullName: userFullName || 'Неизвестный пользователь',
+          fullName: displayName,
           timestamp: new Date().toISOString(),
         };
         socket.emit('message', message);
@@ -738,7 +899,6 @@ const useChat = () => {
     setEditingMessage,
     selectedMessages,
     setSelectedMessages,
-    userFullName,
     files,
     setFiles,
     removeFile,
@@ -773,6 +933,7 @@ const useChat = () => {
     handleSendButtonMouseDown,
     handleSendButtonMouseUp,
     handleFileChange,
+    updateProfile,
   };
 };
 

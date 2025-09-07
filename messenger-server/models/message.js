@@ -3,8 +3,9 @@ const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
   chat: String, // ID чата
-  username: String, // Имя пользователя
-  fullName: String, // Полное имя пользователя
+  userId: String, // ID пользователя
+  username: String, // Имя пользователя (для обратной совместимости)
+  fullName: String, // Полное имя пользователя (для обратной совместимости)
   text: String, // Текст сообщения
   type: { type: String, default: 'text' }, // text или file
   timestamp: Date, // Время отправки

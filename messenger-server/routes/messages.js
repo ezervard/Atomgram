@@ -70,11 +70,29 @@ router.put('/:messageId', authenticateToken, async (req, res) => {
     if (!chat || !chat.participants.includes(req.user.userId)) {
       return res.status(403).json({ error: 'Нет доступа к чату' });
     }
-    if (message.username !== req.user.username) {
+    // Проверяем, не является ли сообщение пересланным
+    if (message.forwardedFrom || message.originalMessage) {
+      return res.status(403).json({ error: 'Пересланные сообщения нельзя редактировать' });
+    }
+    
+    // Проверяем права на редактирование по userId или username
+    if (message.userId && message.userId !== req.user.userId) {
       return res.status(403).json({ error: 'Нет прав для редактирования' });
     }
+    if (!message.userId && message.username !== req.user.username) {
+      return res.status(403).json({ error: 'Нет прав для редактирования' });
+    }
+    // Получаем актуальные данные пользователя для обновления имени
+    const User = require('../models/user');
+    const currentUser = await User.findOne({ userId: req.user.userId });
+    const currentUserDisplayName = currentUser ? 
+      `${currentUser.lastName || ''} ${currentUser.firstName || ''}`.trim() || currentUser.username :
+      req.user.username;
+
     message.text = req.body.text;
     message.edited = true;
+    message.username = currentUserDisplayName;
+    message.fullName = currentUserDisplayName; // Убираем "Переслано от" при редактировании
     await message.save();
     req.app.get('io').to(message.chat).emit('messageUpdated', message);
     console.log('Сообщение обновлено:', message);
@@ -94,7 +112,11 @@ router.delete('/:messageId', authenticateToken, async (req, res) => {
     if (!chat || !chat.participants.includes(req.user.userId)) {
       return res.status(403).json({ error: 'Нет доступа к чату' });
     }
-    if (message.username !== req.user.username) {
+    // Проверяем права на удаление по userId или username
+    if (message.userId && message.userId !== req.user.userId) {
+      return res.status(403).json({ error: 'Нет прав для удаления' });
+    }
+    if (!message.userId && message.username !== req.user.username) {
       return res.status(403).json({ error: 'Нет прав для удаления' });
     }
     
@@ -138,14 +160,31 @@ router.post('/forward', authenticateToken, async (req, res) => {
         !targetChat || !targetChat.participants.includes(req.user.userId)) {
       return res.status(403).json({ error: 'Нет доступа к чату' });
     }
+    // Получаем актуальные данные пользователя
+    const User = require('../models/user');
+    const currentUser = await User.findOne({ userId: req.user.userId });
+    const currentUserDisplayName = currentUser ? 
+      `${currentUser.lastName || ''} ${currentUser.firstName || ''}`.trim() || currentUser.username :
+      req.user.username;
+
+    // Получаем актуальное имя автора оригинального сообщения
+    let originalAuthorName = originalMessage.fullName || originalMessage.username;
+    if (originalMessage.userId) {
+      const originalAuthor = await User.findOne({ userId: originalMessage.userId });
+      if (originalAuthor) {
+        originalAuthorName = `${originalAuthor.lastName || ''} ${originalAuthor.firstName || ''}`.trim() || originalAuthor.username;
+      }
+    }
+
     const forwardedMessage = new Message({
-      username: req.user.username,
+      userId: req.user.userId,
+      username: currentUserDisplayName,
       chat: targetChatId,
       text: originalMessage.text,
-      fullName: `Переслано от ${originalMessage.fullName}`,
+      fullName: `Переслано от ${originalAuthorName}`,
       type: originalMessage.type,
       timestamp: new Date(),
-      forwardedFrom: originalMessage.fullName,
+      forwardedFrom: originalAuthorName,
       originalMessage: originalMessage._id,
     });
     await forwardedMessage.save();
@@ -167,7 +206,7 @@ router.post('/upload', authenticateToken, async (req, res) => {
     if (!req.files || Object.keys(req.files).length === 0) {
       return res.status(400).json({ error: 'Файлы не загружены' });
     }
-    const { chatId, username, fullName, text } = req.body;
+    const { chatId, userId, username, fullName, text } = req.body;
     const chat = await Chat.findOne({ chatId });
     if (!chat || !chat.participants.includes(req.user.userId)) {
       return res.status(403).json({ error: 'Нет доступа к чату' });
@@ -241,6 +280,7 @@ router.post('/upload', authenticateToken, async (req, res) => {
     console.log('Данные файлов для сохранения:', filesData);
     
     const message = new Message({
+      userId: userId || req.user.userId,
       username,
       chat: chatId,
       text: text || '',
