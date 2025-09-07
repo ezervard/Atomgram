@@ -4,7 +4,10 @@ const router = express.Router();
 const Chat = require('../models/chat');
 const User = require('../models/user');
 const { authenticateToken } = require('../middleware/auth');
-const { v4: uuidv4 } = require('uuid');
+// Функция для генерации короткого ID (6 символов)
+const generateShortId = () => {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+};
 
 router.get('/', authenticateToken, async (req, res) => {
   console.log(`GET /chats for userId: ${req.user.userId}`);

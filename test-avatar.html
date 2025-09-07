@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Avatar Upload</title>
+</head>
+<body>
+    <h1>Test Avatar Upload</h1>
+    <form id="avatarForm" enctype="multipart/form-data">
+        <input type="file" id="avatarInput" accept="image/*" />
+        <button type="submit">Upload Avatar</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('avatarForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('avatarInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Выберите файл');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('avatar', file);
+            
+            try {
+                const response = await fetch('http://192.168.2.15:8080/auth/avatar', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer YOUR_TOKEN_HERE'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 
+                    'Status: ' + response.status + '<br>' +
+                    'Response: ' + JSON.stringify(result);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>

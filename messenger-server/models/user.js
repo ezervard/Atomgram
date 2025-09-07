@@ -1,9 +1,13 @@
 // models/user.js
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid'); // Используем uuid
+
+// Функция для генерации короткого ID (6 символов)
+const generateShortId = () => {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+};
 
 const userSchema = new mongoose.Schema({
-  userId: { type: String, unique: true, default: uuidv4 },
+  userId: { type: String, unique: true, default: generateShortId },
   username: String,
   email: String,
   password: String,
@@ -12,6 +16,7 @@ const userSchema = new mongoose.Schema({
   patronymic: String,
   fullName: String,
   status: { type: String, default: 'offline' },
+  avatar: String, // URL аватара
 });
 
 module.exports = mongoose.model('User', userSchema);

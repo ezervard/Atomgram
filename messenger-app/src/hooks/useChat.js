@@ -664,8 +664,79 @@ const useChat = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const updateProfile = async (profileData) => {
+  const updateProfile = async (profileData, avatarFile) => {
     try {
+      // Сначала загружаем аватар, если он есть
+      let avatarUrl = null;
+      if (avatarFile) {
+        console.log('Загружаем аватар:', avatarFile.name, avatarFile.size, avatarFile.type);
+        const formData = new FormData();
+        formData.append('avatar', avatarFile);
+        
+        console.log('FormData создан, отправляем запрос на:', `${API_URL}/auth/avatar`);
+        console.log('Токен:', token ? 'есть' : 'отсутствует');
+        
+        // Сначала проверим, доступен ли сервер
+        try {
+          const testResponse = await fetch(`${API_URL}/auth/users`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          });
+          console.log('Тест подключения к серверу:', testResponse.status);
+        } catch (testError) {
+          console.error('Ошибка подключения к серверу:', testError);
+          throw new Error('Не удается подключиться к серверу');
+        }
+        
+        // Создаем AbortController для таймаута
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.log('Таймаут загрузки аватара');
+          controller.abort();
+        }, 10000); // 10 секунд таймаут
+
+        try {
+          const avatarResponse = await fetch(`${API_URL}/auth/avatar`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+          console.log('Запрос завершен, статус:', avatarResponse.status);
+          console.log('Ответ сервера на загрузку аватара:', avatarResponse.status, avatarResponse.statusText);
+
+          if (!avatarResponse.ok) {
+            let errorMessage = 'Ошибка загрузки аватара';
+            try {
+              const errorData = await avatarResponse.json();
+              errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+              errorMessage = `HTTP ${avatarResponse.status}: ${avatarResponse.statusText}`;
+            }
+            console.error('Ошибка загрузки аватара:', errorMessage);
+            throw new Error(errorMessage);
+          }
+
+          const avatarData = await avatarResponse.json();
+          console.log('Аватар успешно загружен:', avatarData);
+          avatarUrl = avatarData.avatar;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          if (error.name === 'AbortError') {
+            console.error('Таймаут загрузки аватара');
+            throw new Error('Таймаут загрузки аватара. Проверьте подключение к серверу.');
+          }
+          throw error;
+        }
+      }
+
+      // Обновляем профиль
       const response = await fetch(`${API_URL}/auth/profile`, {
         method: 'PUT',
         headers: {
@@ -681,6 +752,11 @@ const useChat = () => {
       }
 
       const updatedUser = await response.json();
+      
+      // Если аватар был загружен, добавляем его к данным пользователя
+      if (avatarUrl) {
+        updatedUser.avatar = avatarUrl;
+      }
       
       // Обновляем данные пользователя в состоянии
       setUser(updatedUser.username);
@@ -711,7 +787,11 @@ const useChat = () => {
       return updatedUser;
     } catch (error) {
       console.error('Ошибка обновления профиля:', error);
-      toast.error('Ошибка обновления профиля: ' + error.message);
+      if (error.name === 'AbortError') {
+        toast.error('Таймаут загрузки аватара. Проверьте подключение к серверу.');
+      } else {
+        toast.error('Ошибка обновления профиля: ' + error.message);
+      }
       throw error;
     }
   };
@@ -880,6 +960,7 @@ const useChat = () => {
     formData,
     setFormData,
     users,
+    setUsers,
     chats,
     showAddressBook,
     setShowAddressBook,

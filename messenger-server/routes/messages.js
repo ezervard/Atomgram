@@ -7,10 +7,16 @@ const fs = require('fs').promises;
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 
-// Функция для очистки неиспользуемых файлов
+// Функция для очистки неиспользуемых файлов (только при удалении сообщений)
 const cleanupUnusedFiles = async () => {
   try {
     const uploadsDir = path.join(__dirname, '..', 'Uploads');
+    const avatarsDir = path.join(uploadsDir, 'avatars');
+    
+    // Проверяем существование директорий
+    const uploadsExists = await fs.access(uploadsDir).then(() => true).catch(() => false);
+    if (!uploadsExists) return;
+    
     const files = await fs.readdir(uploadsDir);
     
     // Получаем все файлы, которые используются в сообщениях
@@ -28,9 +34,19 @@ const cleanupUnusedFiles = async () => {
       }
     });
     
-    // Удаляем неиспользуемые файлы
+    // Получаем все аватары пользователей
+    const User = require('../models/user');
+    const users = await User.find({}, 'avatar');
+    users.forEach(user => {
+      if (user.avatar) {
+        const fileName = path.basename(user.avatar);
+        usedFiles.add(fileName);
+      }
+    });
+    
+    // Удаляем только неиспользуемые файлы (не аватары)
     for (const file of files) {
-      if (!usedFiles.has(file)) {
+      if (!usedFiles.has(file) && !file.startsWith('avatar_')) {
         try {
           const filePath = path.join(uploadsDir, file);
           await fs.unlink(filePath);

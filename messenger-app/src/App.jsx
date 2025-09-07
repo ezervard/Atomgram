@@ -23,6 +23,7 @@ function App() {
     selectedChat,
     setSelectedChat,
     users,
+    setUsers,
     chats,
     showAddressBook,
     setShowAddressBook,
@@ -82,6 +83,7 @@ function App() {
           userId={userId}
           chats={chats}
           users={users}
+          setUsers={setUsers}
           selectedChat={selectedChat}
           showAddressBook={showAddressBook}
           setShowAddressBook={setShowAddressBook}

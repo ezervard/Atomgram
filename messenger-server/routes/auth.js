@@ -4,7 +4,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const { authenticateToken } = require('../middleware/auth'); // Добавили для /users
-const { v4: uuidv4 } = require('uuid');
+// Функция для генерации короткого ID (6 символов)
+const generateShortId = () => {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+};
+const path = require('path');
+const fs = require('fs').promises;
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
@@ -74,7 +79,7 @@ router.post('/logout', (req, res) => {
 router.get('/users', authenticateToken, async (req, res) => { // Добавили auth
   console.log('GET /auth/users');
   try {
-    const users = await User.find({}, 'userId username firstName lastName patronymic fullName email status');
+    const users = await User.find({}, 'userId username firstName lastName patronymic fullName email status avatar');
     console.log('Загружены пользователи:', users);
     res.json(users);
   } catch (err) {
@@ -86,7 +91,7 @@ router.get('/users', authenticateToken, async (req, res) => { // Добавил�
 router.put('/profile', authenticateToken, async (req, res) => {
   console.log('PUT /auth/profile');
   try {
-    const { firstName, lastName, patronymic, email, status } = req.body;
+    const { firstName, lastName, patronymic, email } = req.body;
     const userId = req.user.userId;
     
     // Проверяем, что email не занят другим пользователем
@@ -105,8 +110,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
       firstName,
       lastName,
       patronymic,
-      fullName: `${firstName} ${lastName} ${patronymic}`.trim(),
-      status
+      fullName: `${firstName} ${lastName} ${patronymic}`.trim()
     };
     
     if (email) {
@@ -116,7 +120,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
     const updatedUser = await User.findOneAndUpdate(
       { userId },
       updateData,
-      { new: true, select: 'userId username firstName lastName patronymic fullName email status' }
+      { new: true, select: 'userId username firstName lastName patronymic fullName email status avatar' }
     );
     
     if (!updatedUser) {
@@ -127,6 +131,66 @@ router.put('/profile', authenticateToken, async (req, res) => {
     res.json(updatedUser);
   } catch (err) {
     console.error('Ошибка обновления профиля:', err.message);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Роут для загрузки аватара
+router.post('/avatar', authenticateToken, async (req, res) => {
+  console.log('POST /auth/avatar - получен запрос');
+  console.log('req.files:', req.files);
+  console.log('req.body:', req.body);
+  console.log('req.headers:', req.headers);
+  try {
+    if (!req.files || !req.files.avatar) {
+      console.log('Файл аватара не найден');
+      return res.status(400).json({ error: 'Файл аватара не найден' });
+    }
+
+    const avatar = req.files.avatar;
+    const userId = req.user.userId;
+    console.log('Аватар получен:', avatar.name, avatar.size, avatar.mimetype);
+
+    // Проверяем тип файла
+    if (!avatar.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: 'Файл должен быть изображением' });
+    }
+
+    // Проверяем размер файла (максимум 5MB)
+    if (avatar.size > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Размер файла не должен превышать 5MB' });
+    }
+
+    // Создаем уникальное имя файла
+    const fileExtension = path.extname(avatar.name);
+    const fileName = `avatar_${userId}_${Date.now()}${fileExtension}`;
+    const filePath = path.join(__dirname, '..', 'Uploads', 'avatars', fileName);
+
+    // Создаем папку avatars если её нет
+    const avatarsDir = path.join(__dirname, '..', 'Uploads', 'avatars');
+    try {
+      await fs.mkdir(avatarsDir, { recursive: true });
+    } catch (err) {
+      // Папка уже существует
+    }
+
+    // Сохраняем файл
+    console.log('Сохраняем файл по пути:', filePath);
+    await avatar.mv(filePath);
+    console.log('Файл успешно сохранен');
+
+    // Обновляем URL аватара в базе данных
+    const avatarUrl = `/Uploads/avatars/${fileName}`;
+    console.log('Обновляем аватар в базе данных:', avatarUrl);
+    await User.findOneAndUpdate(
+      { userId },
+      { avatar: avatarUrl }
+    );
+    console.log('Аватар обновлен в базе данных');
+
+    res.json({ avatar: avatarUrl });
+  } catch (err) {
+    console.error('Ошибка загрузки аватара:', err.message);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

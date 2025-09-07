@@ -42,17 +42,8 @@ app.set('io', io);
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/grok_messenger_new', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-}).then(async () => {
+}).then(() => {
   console.log('Подключено к MongoDB');
-  
-  // Очищаем неиспользуемые файлы при запуске сервера
-  try {
-    const { cleanupUnusedFiles } = require('./routes/messages');
-    await cleanupUnusedFiles();
-    console.log('Очистка файлов при запуске завершена');
-  } catch (error) {
-    console.error('Ошибка очистки файлов при запуске:', error.message);
-  }
 }).catch((err) => {
   console.error('Ошибка подключения к MongoDB:', err.message);
 });

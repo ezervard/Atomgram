@@ -1,9 +1,13 @@
 // models/chat.js
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid'); // Используем uuid последовательно
+
+// Функция для генерации короткого ID (6 символов)
+const generateShortId = () => {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+};
 
 const chatSchema = new mongoose.Schema({
-  chatId: { type: String, unique: true, default: uuidv4 },
+  chatId: { type: String, unique: true, default: generateShortId },
   type: { type: String, default: 'private' }, // Добавили default
   participants: [{ type: String }], // Хранит userId
   name: { type: String, default: null }, // Для групповых чатов

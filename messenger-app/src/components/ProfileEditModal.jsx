@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import AvatarUpload from './AvatarUpload';
 
-const ProfileEditModal = ({ isOpen, onClose, userInfo, onSave }) => {
+const ProfileEditModal = ({ isOpen, onClose, userInfo, onSave, onAvatarUpdate }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     patronymic: '',
-    email: '',
-    status: ''
+    email: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   useEffect(() => {
     if (userInfo && isOpen) {
@@ -17,8 +19,7 @@ const ProfileEditModal = ({ isOpen, onClose, userInfo, onSave }) => {
         firstName: userInfo.firstName || '',
         lastName: userInfo.lastName || '',
         patronymic: userInfo.patronymic || '',
-        email: userInfo.email || '',
-        status: userInfo.status || 'offline'
+        email: userInfo.email || ''
       });
       setErrors({});
     }
@@ -40,6 +41,11 @@ const ProfileEditModal = ({ isOpen, onClose, userInfo, onSave }) => {
     }
   };
 
+  const handleAvatarChange = (file) => {
+    setAvatarFile(file);
+    console.log('Аватар выбран для загрузки:', file);
+  };
+
   const validateForm = () => {
     const newErrors = {};
     
@@ -59,10 +65,13 @@ const ProfileEditModal = ({ isOpen, onClose, userInfo, onSave }) => {
       return;
     }
     
+    console.log('Отправляем данные профиля:', formData);
+    console.log('Файл аватара:', avatarFile);
+    
     setIsLoading(true);
     
     try {
-      await onSave(formData);
+      await onSave(formData, avatarFile);
       onClose();
     } catch (error) {
       console.error('Ошибка сохранения профиля:', error);
@@ -89,6 +98,16 @@ const ProfileEditModal = ({ isOpen, onClose, userInfo, onSave }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Аватар */}
+          <div className="flex justify-center">
+            <AvatarUpload
+              currentAvatar={userInfo?.avatar}
+              onAvatarChange={handleAvatarChange}
+              onAvatarUpdate={onAvatarUpdate}
+              disabled={isLoading || isUploadingAvatar}
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Имя
@@ -150,23 +169,6 @@ const ProfileEditModal = ({ isOpen, onClose, userInfo, onSave }) => {
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Статус
-            </label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading}
-            >
-              <option value="offline">Офлайн</option>
-              <option value="online">Онлайн</option>
-              <option value="away">Отошел</option>
-              <option value="busy">Занят</option>
-            </select>
-          </div>
 
           {errors.submit && (
             <div className="text-red-500 text-sm text-center">

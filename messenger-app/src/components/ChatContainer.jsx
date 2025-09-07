@@ -6,6 +6,7 @@ import MessageInput from './MessageInput';
 import ContextMenu from './ContextMenu';
 import ForwardModal from './ForwardModal';
 import UserInfoModal from './UserInfoModal';
+import UserProfileModal from './UserProfileModal';
 import ProfileEditModal from './ProfileEditModal';
 
 const ChatContainer = ({
@@ -13,6 +14,7 @@ const ChatContainer = ({
   userId,
   chats,
   users,
+  setUsers,
   selectedChat,
   showAddressBook,
   setShowAddressBook,
@@ -66,6 +68,7 @@ const ChatContainer = ({
   console.log('ChatContainer: Рендеринг с selectedChat:', selectedChat?.chatId);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showUserInfoModal, setShowUserInfoModal] = useState(false);
+  const [showUserProfileModal, setShowUserProfileModal] = useState(false);
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [currentUserInfo, setCurrentUserInfo] = useState(null);
@@ -102,22 +105,17 @@ const ChatContainer = ({
     if (!selectedChat) return;
     
     // Находим пользователя, с которым ведется чат
-    // Сначала попробуем найти по userId, если user содержит userId
-    const otherParticipantId = selectedChat.participants.find(id => {
-      // Если user - это userId (число), сравниваем с id
-      if (typeof user === 'string' && !isNaN(user)) {
-        return id !== user;
-      }
-      // Если user - это fullName, ищем по fullName
-      const currentUser = users.find(u => u.fullName === user);
-      return currentUser ? id !== currentUser.userId : true;
-    });
+    // Ищем участника чата, который не является текущим пользователем
+    const otherParticipantId = selectedChat.participants.find(id => id !== userId);
     
     const userInfo = users.find(u => u.userId === otherParticipantId);
     
     if (userInfo) {
+      console.log('Открываем профиль собеседника:', userInfo);
       setSelectedUserInfo(userInfo);
-      setShowUserInfoModal(true);
+      setShowUserProfileModal(true);
+    } else {
+      console.log('Собеседник не найден в списке пользователей');
     }
   };
 
@@ -126,14 +124,73 @@ const ChatContainer = ({
     const currentUser = users.find(u => u.userId === userId);
     
     if (currentUser) {
+      console.log('Открываем профиль текущего пользователя:', currentUser);
       setCurrentUserInfo(currentUser);
-      setShowProfileEditModal(true);
+      setSelectedUserInfo(null); // Очищаем выбранного пользователя
+      setShowUserProfileModal(true);
+    } else {
+      console.log('Текущий пользователь не найден в списке users');
     }
   };
 
-  const handleSaveProfile = async (profileData) => {
-    await updateProfile(profileData);
-    setShowProfileEditModal(false);
+  const handleEditProfileFromModal = () => {
+    setShowUserProfileModal(false);
+    setShowProfileEditModal(true);
+  };
+
+  const handleSaveProfile = async (profileData, avatarFile) => {
+    try {
+      // Если есть файл аватара, загружаем его сначала
+      if (avatarFile) {
+        console.log('Загружаем аватар:', avatarFile);
+        const formData = new FormData();
+        formData.append('avatar', avatarFile);
+        
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://192.168.2.15:8080'}/auth/avatar`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Ошибка загрузки аватара');
+        }
+
+        const avatarData = await response.json();
+        console.log('Аватар успешно загружен:', avatarData);
+        
+        // Обновляем аватар в UI
+        handleAvatarUpdate(avatarData.avatar);
+      }
+      
+      // Сохраняем данные профиля
+      await updateProfile(profileData);
+      setShowProfileEditModal(false);
+    } catch (error) {
+      console.error('Ошибка сохранения профиля:', error);
+      throw error;
+    }
+  };
+
+  const handleAvatarUpdate = (avatarUrl) => {
+    console.log('Обновляем аватар:', avatarUrl);
+    // Сохраняем аватар в localStorage
+    localStorage.setItem('avatarPreview', avatarUrl);
+    console.log('Аватар сохранен в localStorage в handleAvatarUpdate');
+    
+    // Обновляем аватар в списке пользователей
+    setUsers(prevUsers => 
+      prevUsers.map(u => 
+        u.userId === currentUserInfo?.userId ? { ...u, avatar: avatarUrl } : u
+      )
+    );
+    
+    // Обновляем currentUserInfo
+    if (currentUserInfo) {
+      setCurrentUserInfo({ ...currentUserInfo, avatar: avatarUrl });
+    }
   };
 
   useEffect(() => {
@@ -226,11 +283,19 @@ const ChatContainer = ({
           onClose={() => setShowUserInfoModal(false)}
           userInfo={selectedUserInfo}
         />
+        <UserProfileModal
+          isOpen={showUserProfileModal}
+          onClose={() => setShowUserProfileModal(false)}
+          userInfo={selectedUserInfo || currentUserInfo}
+          onEdit={handleEditProfileFromModal}
+          isCurrentUser={selectedUserInfo ? selectedUserInfo.userId === currentUserInfo?.userId : true}
+        />
         <ProfileEditModal
           isOpen={showProfileEditModal}
           onClose={() => setShowProfileEditModal(false)}
           userInfo={currentUserInfo}
           onSave={handleSaveProfile}
+          onAvatarUpdate={handleAvatarUpdate}
         />
         {selectedChat && (
           <MessageInput
