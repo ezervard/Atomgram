@@ -134,9 +134,7 @@ const ChatMessages = ({ user, userId, users, selectedChat, messages, selectedMes
   return (
     <>
       {selectedChat ? (
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col scroll-container">
-          {/* Пустой div для прижатия сообщений к низу */}
-          <div style={{ flex: 1, minHeight: 0 }}></div>
+        <div className="messages-container p-4 scroll-container" style={{ paddingTop: 'calc(100vh - 200px)' }}>
           {(messages[selectedChat.chatId] || [])
             .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
             .map((msg, index) => (
@@ -206,10 +204,10 @@ const ChatMessages = ({ user, userId, users, selectedChat, messages, selectedMes
                           <div key={fileIndex} className="mt-2">
                             <div className="relative group">
                               <img
-                                src={`такhttp://192.168.2.15:8080${file.url}`}
+                                src={`http://10.185.101.19:8080${file.url}`}
                                 alt={displayName}
                                 className="max-w-xs max-h-64 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
-                                onClick={() => openImageModal(`http://192.168.2.15:8080${file.url}`, displayName)}
+                                onClick={() => openImageModal(`http://10.185.101.19:8080${file.url}`, displayName)}
                                 onError={(e) => {
                                   e.target.style.display = 'none';
                                   e.target.nextSibling.style.display = 'flex';
@@ -231,7 +229,7 @@ const ChatMessages = ({ user, userId, users, selectedChat, messages, selectedMes
                                   </div>
                                 </div>
                                 <a
-                                  href={`http://192.168.2.15:8080${file.url}`}
+                                  href={`http://10.185.101.19:8080${file.url}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="ml-2 text-blue-500 hover:text-blue-700 transition-colors"
@@ -251,7 +249,7 @@ const ChatMessages = ({ user, userId, users, selectedChat, messages, selectedMes
                           <div key={fileIndex} className="mt-2">
                             <div className="relative group">
                               <video
-                                src={`http://192.168.2.15:8080${file.url}`}
+                                src={`http://10.185.101.19:8080${file.url}`}
                                 controls
                                 className="max-w-xs max-h-64 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
                                 onError={(e) => {
@@ -277,7 +275,7 @@ const ChatMessages = ({ user, userId, users, selectedChat, messages, selectedMes
                                   </div>
                                 </div>
                                 <a
-                                  href={`http://192.168.2.15:8080${file.url}`}
+                                  href={`http://10.185.101.19:8080${file.url}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="ml-2 text-blue-500 hover:text-blue-700 transition-colors"
@@ -296,7 +294,7 @@ const ChatMessages = ({ user, userId, users, selectedChat, messages, selectedMes
                         <div 
                           key={fileIndex} 
                           className="flex items-center p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
-                          onClick={() => handleFileDownload(`http://192.168.2.15:8080${file.url}`, displayName)}
+                          onClick={() => handleFileDownload(`http://10.185.101.19:8080${file.url}`, displayName)}
                         >
                           <span className="text-lg mr-3">
                             {getFileIcon(file.type)}

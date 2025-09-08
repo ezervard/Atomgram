@@ -1,5 +1,4 @@
 import React from 'react';
-import { FaComments, FaUsers, FaUser, FaCog } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Sidebar = ({
@@ -38,7 +37,15 @@ const Sidebar = ({
           whileTap={{ scale: 0.98 }}
         >
           <span className="flex items-center">
-            {showAddressBook ? <FaComments className="mr-2" /> : <FaUsers className="mr-2" />}
+            {showAddressBook ? (
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+              </svg>
+            )}
             {showAddressBook ? 'Чаты' : 'Адресная книга'}
           </span>
           <motion.div
@@ -72,7 +79,9 @@ const Sidebar = ({
                   whileHover={{ scale: 1.02, backgroundColor: 'rgba(107, 114, 128, 0.7)' }}
                 >
                   <span className="flex items-center">
-                    <FaUser className="mr-2 text-gray-300" />
+                    <svg className="w-4 h-4 mr-2 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
                     {user.fullName}
                   </span>
                   <span className={`text-xs px-2 py-1 rounded-full transition-colors duration-200 ${
@@ -101,7 +110,9 @@ const Sidebar = ({
                   whileHover={{ scale: 1.02, backgroundColor: selectedChat && selectedChat.chatId === chat.chatId ? 'rgba(30, 64, 175, 0.7)' : 'rgba(107, 114, 128, 0.7)' }}
                 >
                   <span className="flex-1 flex items-center">
-                    <FaUser className="mr-2 text-gray-300" />
+                    <svg className="w-4 h-4 mr-2 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
                     {chat.name || chat.chatId}
                   </span>
                   {selectedChat && selectedChat.chatId === chat.chatId && (
@@ -131,7 +142,9 @@ const Sidebar = ({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.98 }}
         >
-          <FaCog className="mr-2" />
+          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+          </svg>
           Профиль
         </motion.button>
       </div>

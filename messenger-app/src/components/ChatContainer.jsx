@@ -146,7 +146,7 @@ const ChatContainer = ({
         const formData = new FormData();
         formData.append('avatar', avatarFile);
         
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://192.168.2.15:8080'}/auth/avatar`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://10.185.101.19:8080'}/auth/avatar`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -247,17 +247,19 @@ const ChatContainer = ({
           handleLogout={handleLogout}
           onChatNameClick={handleChatNameClick}
         />
-        <ChatMessages
-          user={user}
-          userId={userId}
-          users={users}
-          selectedChat={selectedChat}
-          messages={messages}
-          selectedMessages={selectedMessages}
-          setContextMenu={setContextMenu}
-          handleMessageClick={handleMessageClick}
-          messagesEndRef={messagesEndRef}
-        />
+        <div className="flex-1 overflow-hidden">
+          <ChatMessages
+            user={user}
+            userId={userId}
+            users={users}
+            selectedChat={selectedChat}
+            messages={messages}
+            selectedMessages={selectedMessages}
+            setContextMenu={setContextMenu}
+            handleMessageClick={handleMessageClick}
+            messagesEndRef={messagesEndRef}
+          />
+        </div>
         <ContextMenu
           contextMenu={contextMenu}
           setContextMenu={setContextMenu}

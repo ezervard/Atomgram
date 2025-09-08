@@ -216,7 +216,7 @@ const AvatarUpload = ({ currentAvatar, onAvatarChange, onAvatarUpdate, disabled 
           <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center shadow-lg">
             {displayAvatar ? (
               <img
-                src={displayAvatar.startsWith('http') ? displayAvatar : `http://192.168.2.15:8080${displayAvatar}`}
+                src={displayAvatar.startsWith('http') ? displayAvatar : `http://10.185.101.19:8080${displayAvatar}`}
                 alt="Аватар"
                 className="w-full h-full object-cover object-center"
                 style={{ 

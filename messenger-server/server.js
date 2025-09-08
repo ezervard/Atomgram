@@ -14,7 +14,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_ORIGIN || 'http://192.168.2.15:5173', // Используйте env для гибкости
+    origin: process.env.CLIENT_ORIGIN || 'http://10.185.101.19:5173', // Используйте env для гибкости
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
   },
@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({ 
-  origin: process.env.CLIENT_ORIGIN || 'http://192.168.2.15:5173',
+  origin: process.env.CLIENT_ORIGIN || 'http://10.185.101.19:5173',
   credentials: true
 }));
 app.use(express.json());

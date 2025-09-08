@@ -3,7 +3,7 @@ import io from 'socket.io-client';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.2.15:8080';
+const API_URL = import.meta.env.VITE_API_URL || 'http://10.185.101.19:8080';
 const socket = io(API_URL, { autoConnect: false });
 
 const useChat = () => {
@@ -926,7 +926,7 @@ const useChat = () => {
 
   const handleEmojiClick = (emojiObject) => {
   console.log('Выбран смайлик:', emojiObject);
-  const emoji = emojiObject.emoji || '';
+  const emoji = emojiObject.native || emojiObject.emoji || '';
   setInput((prev) => prev + emoji);
   if (inputRef.current) {
     inputRef.current.focus();

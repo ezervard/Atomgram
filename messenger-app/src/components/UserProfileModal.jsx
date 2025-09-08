@@ -58,7 +58,7 @@ const UserProfileModal = ({ isOpen, onClose, userInfo, onEdit, isCurrentUser }) 
             <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center shadow-lg">
               {userInfo.avatar ? (
                 <img
-                  src={userInfo.avatar.startsWith('http') ? userInfo.avatar : `http://192.168.2.15:8080${userInfo.avatar}`}
+                  src={userInfo.avatar.startsWith('http') ? userInfo.avatar : `http://10.185.101.19:8080${userInfo.avatar}`}
                   alt="Аватар"
                   className="w-full h-full object-cover object-center"
                   style={{ 
