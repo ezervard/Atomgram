@@ -3,8 +3,21 @@ import io from 'socket.io-client';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://10.185.101.19:8080';
-const socket = io(API_URL, { autoConnect: false });
+// Принудительно используем HTTP протокол
+const API_URL = (import.meta.env.VITE_API_URL || 'http://10.185.101.19:8080').replace('https://', 'http://');
+
+// Функция для принудительного использования HTTP протокола
+const forceHttp = (url) => {
+  const httpUrl = url.replace('https://', 'http://');
+  console.log('Принудительно используем HTTP:', httpUrl);
+  return httpUrl;
+};
+
+const socket = io(API_URL, { 
+  autoConnect: false,
+  forceNew: true,
+  transports: ['websocket', 'polling']
+});
 
 const useChat = () => {
   const [user, setUser] = useState(null);
@@ -216,7 +229,7 @@ const useChat = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_URL}/auth/users`, {
+      const response = await fetch(forceHttp(`${API_URL}/auth/users`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 401 || response.status === 403) {
@@ -243,7 +256,7 @@ const useChat = () => {
         return;
       }
       console.log(`Загрузка чатов для userId: ${userId}`);
-      const response = await fetch(`${API_URL}/chats`, {
+      const response = await fetch(forceHttp(`${API_URL}/chats`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 401 || response.status === 403) {
@@ -324,7 +337,7 @@ const useChat = () => {
 
   const fetchMessages = async (chatId) => {
     try {
-      const response = await fetch(`${API_URL}/messages/${chatId}`, {
+      const response = await fetch(forceHttp(`${API_URL}/messages/${chatId}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 401 || response.status === 403) {
@@ -355,7 +368,7 @@ const useChat = () => {
         return;
       }
       console.log(`Создание чата с userId: ${otherUserId}`);
-      const response = await fetch(`${API_URL}/chats`, {
+      const response = await fetch(forceHttp(`${API_URL}/chats`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -409,10 +422,11 @@ const useChat = () => {
             lastName: formData.lastName,
             patronymic: formData.patronymic,
           };
-      console.log('Отправка запроса авторизации на:', `${API_URL}${url}`);
+      const finalUrl = forceHttp(`${API_URL}${url}`);
+      console.log('Отправка запроса авторизации на:', finalUrl);
       console.log('Payload:', payload);
       
-      const response = await fetch(`${API_URL}${url}`, {
+      const response = await fetch(finalUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -447,7 +461,7 @@ const useChat = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_URL}/auth/logout`, {
+      await fetch(forceHttp(`${API_URL}/auth/logout`), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -503,7 +517,7 @@ const useChat = () => {
     }
     console.log('Сохранение отредактированного сообщения:', editingMessage);
     try {
-      const response = await fetch(`${API_URL}/messages/${editingMessage._id}`, {
+      const response = await fetch(forceHttp(`${API_URL}/messages/${editingMessage._id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -555,7 +569,7 @@ const useChat = () => {
     }
     
     try {
-      const response = await fetch(`${API_URL}/messages/${contextMenu.message._id}`, {
+      const response = await fetch(forceHttp(`${API_URL}/messages/${contextMenu.message._id}`), {
         method: 'DELETE',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -614,7 +628,7 @@ const useChat = () => {
         ? messages[selectedChat.chatId].filter((msg) => selectedMessages.includes(msg._id))
         : [forwardMessage];
       for (const message of messagesToForward) {
-        const response = await fetch(`${API_URL}/messages/forward`, {
+        const response = await fetch(forceHttp(`${API_URL}/messages/forward`), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -678,7 +692,7 @@ const useChat = () => {
         
         // Сначала проверим, доступен ли сервер
         try {
-          const testResponse = await fetch(`${API_URL}/auth/users`, {
+          const testResponse = await fetch(forceHttp(`${API_URL}/auth/users`), {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -698,7 +712,7 @@ const useChat = () => {
         }, 10000); // 10 секунд таймаут
 
         try {
-          const avatarResponse = await fetch(`${API_URL}/auth/avatar`, {
+          const avatarResponse = await fetch(forceHttp(`${API_URL}/auth/avatar`), {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -737,7 +751,7 @@ const useChat = () => {
       }
 
       // Обновляем профиль
-      const response = await fetch(`${API_URL}/auth/profile`, {
+      const response = await fetch(forceHttp(`${API_URL}/auth/profile`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

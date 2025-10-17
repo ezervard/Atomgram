@@ -1,48 +1,97 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
-const UserProfileModal = ({ isOpen, onClose, userInfo, onEdit, isCurrentUser }) => {
+const UserProfileModal = ({ isOpen, onClose, userInfo, onEdit, isCurrentUser, onLogout }) => {
+  const modalRef = useRef(null);
+  
+  // Обработчик ESC для закрытия модального окна
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, onClose]);
+  
   if (!isOpen || !userInfo) return null;
   
   console.log('UserProfileModal: отображаем профиль:', userInfo);
   console.log('UserProfileModal: isCurrentUser:', isCurrentUser);
+  console.log('UserProfileModal: avatar URL:', userInfo?.avatar);
+
+  // Обработчик клика вне области модального окна
+  const handleBackdropClick = (e) => {
+    if (modalRef.current && !modalRef.current.contains(e.target)) {
+      onClose();
+    }
+  };
 
   const getStatusText = (status) => {
-    switch (status) {
-      case 'online': return 'В сети';
-      case 'away': return 'Отошел';
-      case 'busy': return 'Занят';
-      case 'offline': 
-      default: return 'Не в сети';
+    if (!status) return 'Неизвестно';
+    
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('online') || statusLower.includes('онлайн')) {
+      return 'В сети';
+    } else if (statusLower.includes('offline') || statusLower.includes('офлайн')) {
+      return 'Не в сети';
+    } else if (statusLower.includes('away') || statusLower.includes('отошел')) {
+      return 'Отошел';
+    } else if (statusLower.includes('busy') || statusLower.includes('занят')) {
+      return 'Занят';
     }
+    return status;
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'online': return 'text-green-500';
-      case 'away': return 'text-yellow-500';
-      case 'busy': return 'text-red-500';
-      case 'offline': 
-      default: return 'text-gray-500';
+    if (!status) return 'text-gray-500';
+    
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('online') || statusLower.includes('онлайн')) {
+      return 'text-green-600';
+    } else if (statusLower.includes('offline') || statusLower.includes('офлайн')) {
+      return 'text-gray-500';
+    } else if (statusLower.includes('away') || statusLower.includes('отошел')) {
+      return 'text-yellow-600';
+    } else if (statusLower.includes('busy') || statusLower.includes('занят')) {
+      return 'text-red-600';
     }
+    return 'text-gray-500';
   };
 
   const getStatusDot = (status) => {
-    switch (status) {
-      case 'online': return 'bg-green-500';
-      case 'away': return 'bg-yellow-500';
-      case 'busy': return 'bg-red-500';
-      case 'offline': 
-      default: return 'bg-gray-500';
+    if (!status) return 'bg-gray-400';
+    
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('online') || statusLower.includes('онлайн')) {
+      return 'bg-green-500';
+    } else if (statusLower.includes('offline') || statusLower.includes('офлайн')) {
+      return 'bg-gray-400';
+    } else if (statusLower.includes('away') || statusLower.includes('отошел')) {
+      return 'bg-yellow-500';
+    } else if (statusLower.includes('busy') || statusLower.includes('занят')) {
+      return 'bg-red-500';
     }
+    return 'bg-gray-400';
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+    >
+      <div 
+        ref={modalRef}
+        className="bg-white rounded-lg max-w-md w-full mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Заголовок */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-800">
-            {isCurrentUser ? 'Мой профиль' : 'Профиль пользователя'}
+            Информация
           </h2>
           <button
             onClick={onClose}
@@ -56,7 +105,7 @@ const UserProfileModal = ({ isOpen, onClose, userInfo, onEdit, isCurrentUser }) 
         <div className="p-6 text-center">
           <div className="relative inline-block mb-4">
             <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center shadow-lg">
-              {userInfo.avatar ? (
+              {userInfo.avatar && userInfo.avatar !== 'null' && userInfo.avatar.trim() !== '' ? (
                 <img
                   src={userInfo.avatar.startsWith('http') ? userInfo.avatar : `http://10.185.101.19:8080${userInfo.avatar}`}
                   alt="Аватар"
@@ -66,13 +115,17 @@ const UserProfileModal = ({ isOpen, onClose, userInfo, onEdit, isCurrentUser }) 
                     minHeight: '100%',
                     objectFit: 'cover'
                   }}
+                  onLoad={() => {
+                    console.log('Аватар успешно загружен:', userInfo.avatar);
+                  }}
                   onError={(e) => {
                     console.log('Ошибка загрузки аватара:', userInfo.avatar);
+                    console.log('Полный URL:', userInfo.avatar.startsWith('http') ? userInfo.avatar : `http://10.185.101.19:8080${userInfo.avatar}`);
                     e.target.style.display = 'none';
                   }}
                 />
               ) : (
-                <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-4xl font-bold">
+                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold">
                   {userInfo.firstName ? userInfo.firstName.charAt(0).toUpperCase() : 
                    userInfo.username ? userInfo.username.charAt(0).toUpperCase() : '?'}
                 </div>
@@ -99,6 +152,7 @@ const UserProfileModal = ({ isOpen, onClose, userInfo, onEdit, isCurrentUser }) 
             </p>
           )}
         </div>
+
 
         {/* Детальная информация */}
         <div className="px-6 pb-6 space-y-4">
@@ -176,12 +230,22 @@ const UserProfileModal = ({ isOpen, onClose, userInfo, onEdit, isCurrentUser }) 
         {/* Кнопки действий */}
         <div className="px-6 pb-6 pt-4 border-t border-gray-200">
           {isCurrentUser ? (
-            <button
-              onClick={onEdit}
-              className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors font-medium"
-            >
-              Редактировать профиль
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={onEdit}
+                className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+              >
+                Редактировать профиль
+              </button>
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="w-full bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600 transition-colors font-medium"
+                >
+                  Выйти из аккаунта
+                </button>
+              )}
+            </div>
           ) : (
             <div className="space-y-2">
               <button className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors font-medium">

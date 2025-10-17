@@ -1,7 +1,9 @@
 import React from 'react';
+import { ApolloProvider } from '@apollo/client';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import useChat from './hooks/useChat';
+import apolloClient from './lib/apolloClient';
+import useChatGraphQL from './hooks/useChatGraphQL';
 import ChatContainer from './components/ChatContainer';
 import AuthContainer from './components/AuthContainer';
 import './index.css';
@@ -48,6 +50,7 @@ function App() {
     removeFile,
     uploadProgress,
     isUploading,
+    unreadCounts,
     messagesEndRef,
     inputRef,
     emojiButtonRef,
@@ -61,9 +64,10 @@ function App() {
     handleEditMessage,
     handleSaveEdit,
     handleCancelEdit,
-    handleDeleteMessage,
-    handleSelectMessage,
-    handleForwardMessage,
+           handleDeleteMessage,
+           handleDeleteSelectedMessages,
+           handleSelectMessage,
+           handleForwardMessage,
     handleForwardToChat,
     sendMessage,
     handleKeyDown,
@@ -73,10 +77,11 @@ function App() {
     handleSendButtonMouseUp,
     handleFileChange,
     updateProfile,
-  } = useChat();
+    notificationSound,
+  } = useChatGraphQL();
 
   return (
-    <>
+    <ApolloProvider client={apolloClient}>
       {user ? (
         <ChatContainer
           user={user}
@@ -89,9 +94,10 @@ function App() {
           setShowAddressBook={setShowAddressBook}
           setSelectedChat={setSelectedChat}
           createPrivateChat={createPrivateChat}
-          selectedMessages={selectedMessages}
-          handleLogout={handleLogout}
-          messages={messages}
+                 selectedMessages={selectedMessages}
+                 setSelectedMessages={setSelectedMessages}
+                 handleLogout={handleLogout}
+                 messages={messages}
           handleMessageClick={handleMessageClick}
           messagesEndRef={messagesEndRef}
           input={input}
@@ -118,9 +124,10 @@ function App() {
           setContextMenu={setContextMenu}
           contextMenuRef={contextMenuRef}
           handleEditMessage={handleEditMessage}
-          handleDeleteMessage={handleDeleteMessage}
-          handleSelectMessage={handleSelectMessage}
-          handleForwardMessage={handleForwardMessage}
+                 handleDeleteMessage={handleDeleteMessage}
+                 handleDeleteSelectedMessages={handleDeleteSelectedMessages}
+                 handleSelectMessage={handleSelectMessage}
+                 handleForwardMessage={handleForwardMessage}
           showForwardModal={showForwardModal}
           setShowForwardModal={setShowForwardModal}
           setForwardMessage={setForwardMessage}
@@ -133,6 +140,8 @@ function App() {
           uploadProgress={uploadProgress}
           isUploading={isUploading}
           updateProfile={updateProfile}
+          unreadCounts={unreadCounts}
+          notificationSound={notificationSound}
         />
       ) : (
         <AuthContainer
@@ -145,7 +154,7 @@ function App() {
         />
       )}
       <ToastContainer />
-    </>
+    </ApolloProvider>
   );
 }
 

@@ -16,6 +16,55 @@ body {
   margin: 0 1px;
 }
 
+/* Стили для сообщений */
+.messages-container {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  min-height: 100vh;
+  justify-content: flex-start;
+}
+
+/* Стили для текста сообщения */
+.message-text {
+  line-height: 1.5;
+  margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Стили для выделения сообщения при поиске */
+.message-highlighted {
+  animation: highlight-pulse 3s ease-in-out;
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.7);
+}
+
+/* Скрытие полосы прокрутки */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+@keyframes highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.9);
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.8);
+    background-color: rgba(59, 130, 246, 0.15);
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.6);
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+}
+
 /* Стили для окна выбора эмодзи */
 .emoji-picker-react {
   font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Android Emoji', 'EmojiSymbols', sans-serif;

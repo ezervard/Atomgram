@@ -4,7 +4,7 @@ const ImageModal = ({ isOpen, onClose, imageUrl, imageAlt }) => {
   const handleDownload = async () => {
     try {
       // Получаем файл по URL
-      const response = await fetch(imageUrl);
+      const response = await fetch(imageUrl.replace('https://', 'http://'));
       const blob = await response.blob();
       
       // Создаем URL для blob

@@ -10,6 +10,8 @@ const Sidebar = ({
   setSelectedChat,
   createPrivateChat,
   onEditProfile,
+  unreadCounts,
+  userId,
 }) => {
   const handleChatClick = (chat) => {
     setSelectedChat(chat);
@@ -28,7 +30,7 @@ const Sidebar = ({
   };
 
   return (
-    <div className="w-64 bg-gradient-to-br from-gray-800 to-gray-900 text-white border-r border-gray-700 shadow-2xl flex flex-col h-full">
+    <div className="w-64 bg-gradient-to-br from-gray-800 to-gray-900 text-white border-r border-gray-700 shadow-2xl flex flex-col h-full overflow-hidden">
       <div className="p-4 border-b border-gray-600">
         <motion.button
           className="w-full text-left px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg hover:from-blue-700 hover:to-blue-900 transition-all duration-300 flex items-center justify-between"
@@ -62,7 +64,7 @@ const Sidebar = ({
           </motion.div>
         </motion.button>
       </div>
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
         <AnimatePresence>
           {showAddressBook ? (
             users.map((user) => {
@@ -79,10 +81,32 @@ const Sidebar = ({
                   whileHover={{ scale: 1.02, backgroundColor: 'rgba(107, 114, 128, 0.7)' }}
                 >
                   <span className="flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
-                    {user.fullName}
+                    <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-600 mr-2 flex items-center justify-center flex-shrink-0">
+                      {user?.avatar && user.avatar !== 'null' && user.avatar.trim() !== '' ? (
+                        <img
+                          src={user.avatar.startsWith('http') ? user.avatar : `http://10.185.101.19:8080${user.avatar}`}
+                          alt="Аватар"
+                          className="w-full h-full object-cover object-center"
+                          style={{ 
+                            minWidth: '100%', 
+                            minHeight: '100%',
+                            objectFit: 'cover'
+                          }}
+                          onError={(e) => {
+                            console.log('Sidebar: Ошибка загрузки аватара в адресной книге:', user.avatar);
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold"
+                        style={{ display: user?.avatar && user.avatar !== 'null' && user.avatar.trim() !== '' ? 'none' : 'flex' }}
+                      >
+                        {user ? (user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || '?') : '?'}
+                      </div>
+                    </div>
+                    <span className="truncate">{user.fullName}</span>
                   </span>
                   <span className={`text-xs px-2 py-1 rounded-full transition-colors duration-200 ${
                     user.status && (user.status.toLowerCase().includes('онлайн') || user.status.toLowerCase().includes('online'))
@@ -109,15 +133,79 @@ const Sidebar = ({
                   exit="exit"
                   whileHover={{ scale: 1.02, backgroundColor: selectedChat && selectedChat.chatId === chat.chatId ? 'rgba(30, 64, 175, 0.7)' : 'rgba(107, 114, 128, 0.7)' }}
                 >
-                  <span className="flex-1 flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
-                    {chat.name || chat.chatId}
+                  <span className="flex-1 flex items-center min-w-0">
+                    {chat.type !== 'favorites' && chat.type !== 'FAVORITES' ? (
+                      // Показываем аватар для обычных чатов
+                      (() => {
+                        // Находим собеседника (не текущего пользователя)
+                        // Для частных чатов участников должно быть 2: текущий пользователь и собеседник
+                        if (chat.participants && chat.participants.length >= 2) {
+                          // Берем первого участника, который не является текущим пользователем
+                          // Предполагаем, что текущий пользователь всегда в списке участников
+                          const otherParticipantId = chat.participants.find(participant => {
+                            const participantId = typeof participant === 'string' ? participant : participant.userId;
+                            return participantId !== userId;
+                          });
+                          
+                          if (otherParticipantId) {
+                            const participantId = typeof otherParticipantId === 'string' ? otherParticipantId : otherParticipantId.userId;
+                            const userInfo = users.find(u => u.userId === participantId);
+                            
+                            console.log('Sidebar: Найден участник для аватара:', userInfo);
+                            
+                            return (
+                              <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-600 mr-2 flex items-center justify-center flex-shrink-0">
+                                {userInfo?.avatar && userInfo.avatar !== 'null' && userInfo.avatar.trim() !== '' ? (
+                                  <img
+                                    src={userInfo.avatar.startsWith('http') ? userInfo.avatar : `http://10.185.101.19:8080${userInfo.avatar}`}
+                                    alt="Аватар"
+                                    className="w-full h-full object-cover object-center"
+                                    style={{ 
+                                      minWidth: '100%', 
+                                      minHeight: '100%',
+                                      objectFit: 'cover'
+                                    }}
+                                    onError={(e) => {
+                                      console.log('Sidebar: Ошибка загрузки аватара:', userInfo.avatar);
+                                      e.target.style.display = 'none';
+                                      e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                  />
+                                ) : null}
+                                <div 
+                                  className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold"
+                                  style={{ display: userInfo?.avatar && userInfo.avatar !== 'null' && userInfo.avatar.trim() !== '' ? 'none' : 'flex' }}
+                                >
+                                  {userInfo ? (userInfo.firstName?.charAt(0)?.toUpperCase() || userInfo.username?.charAt(0)?.toUpperCase() || '?') : '?'}
+                                </div>
+                              </div>
+                            );
+                          }
+                        }
+                        
+                        // Fallback - иконка пользователя
+                        return (
+                          <svg className="w-4 h-4 mr-2 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                          </svg>
+                        );
+                      })()
+                    ) : (
+                      // Для чата "Избранное" ничего не показываем
+                      null
+                    )}
+                    <span className="truncate">{chat.name || chat.chatId}</span>
                   </span>
-                  {selectedChat && selectedChat.chatId === chat.chatId && (
-                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {unreadCounts[chat.chatId] > 0 && (
+                      <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center font-semibold">
+                        {unreadCounts[chat.chatId] > 99 ? '99+' : unreadCounts[chat.chatId]}
+                      </span>
+                    )}
+                    {selectedChat && selectedChat.chatId === chat.chatId && (
+                      <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                    )}
+                  </div>
                 </motion.div>
               ))
             ) : (

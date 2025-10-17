@@ -7,6 +7,8 @@ import ContextMenu from './ContextMenu';
 import ForwardModal from './ForwardModal';
 import UserInfoModal from './UserInfoModal';
 import UserProfileModal from './UserProfileModal';
+import ChatStatsModal from './ChatStatsModal';
+import MessageSearch from './MessageSearch';
 import ProfileEditModal from './ProfileEditModal';
 
 const ChatContainer = ({
@@ -21,6 +23,7 @@ const ChatContainer = ({
   setSelectedChat,
   createPrivateChat,
   selectedMessages,
+  setSelectedMessages,
   handleLogout,
   messages,
   handleMessageClick,
@@ -50,6 +53,7 @@ const ChatContainer = ({
   contextMenuRef,
   handleEditMessage,
   handleDeleteMessage,
+  handleDeleteSelectedMessages,
   handleSelectMessage,
   handleForwardMessage,
   showForwardModal,
@@ -64,14 +68,18 @@ const ChatContainer = ({
   uploadProgress,
   isUploading,
   updateProfile,
+  unreadCounts,
 }) => {
   console.log('ChatContainer: Рендеринг с selectedChat:', selectedChat?.chatId);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showUserInfoModal, setShowUserInfoModal] = useState(false);
   const [showUserProfileModal, setShowUserProfileModal] = useState(false);
+  const [showChatStatsModal, setShowChatStatsModal] = useState(false);
+  const [showMessageSearch, setShowMessageSearch] = useState(false);
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [currentUserInfo, setCurrentUserInfo] = useState(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   
 
   const handleContainerContextMenu = (e) => {
@@ -104,19 +112,31 @@ const ChatContainer = ({
   const handleChatNameClick = () => {
     if (!selectedChat) return;
     
-    // Находим пользователя, с которым ведется чат
-    // Ищем участника чата, который не является текущим пользователем
-    const otherParticipantId = selectedChat.participants.find(id => id !== userId);
+    // Показываем статистику чата
+    console.log('Открываем статистику чата:', selectedChat.name);
+    setShowChatStatsModal(true);
+  };
+
+  const handleSearchClick = () => {
+    if (!selectedChat) return;
     
-    const userInfo = users.find(u => u.userId === otherParticipantId);
+    // Показываем поиск по сообщениям
+    console.log('Открываем поиск по сообщениям в чате:', selectedChat.name);
+    setShowMessageSearch(true);
+  };
+
+  const handleSearchMessageClick = (message) => {
+    // Устанавливаем ID сообщения для выделения и прокрутки
+    console.log('Переходим к сообщению:', message);
+    setHighlightedMessageId(message._id);
     
-    if (userInfo) {
-      console.log('Открываем профиль собеседника:', userInfo);
-      setSelectedUserInfo(userInfo);
-      setShowUserProfileModal(true);
-    } else {
-      console.log('Собеседник не найден в списке пользователей');
-    }
+    // Закрываем модальное окно поиска
+    setShowMessageSearch(false);
+    
+    // Очищаем выделение через 3 секунды
+    setTimeout(() => {
+      setHighlightedMessageId(null);
+    }, 3000);
   };
 
   const handleEditProfile = () => {
@@ -146,7 +166,7 @@ const ChatContainer = ({
         const formData = new FormData();
         formData.append('avatar', avatarFile);
         
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://10.185.101.19:8080'}/auth/avatar`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://10.185.101.19:8080'}/auth/avatar`.replace('https://', 'http://'), {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -181,11 +201,16 @@ const ChatContainer = ({
     console.log('Аватар сохранен в localStorage в handleAvatarUpdate');
     
     // Обновляем аватар в списке пользователей
-    setUsers(prevUsers => 
-      prevUsers.map(u => 
-        u.userId === currentUserInfo?.userId ? { ...u, avatar: avatarUrl } : u
-      )
-    );
+    setUsers(prevUsersData => {
+      if (!prevUsersData?.users) return prevUsersData;
+      
+      return {
+        ...prevUsersData,
+        users: prevUsersData.users.map(u => 
+          u.userId === currentUserInfo?.userId ? { ...u, avatar: avatarUrl } : u
+        )
+      };
+    });
     
     // Обновляем currentUserInfo
     if (currentUserInfo) {
@@ -224,6 +249,8 @@ const ChatContainer = ({
         setSelectedChat={setSelectedChat}
         createPrivateChat={createPrivateChat}
         onEditProfile={handleEditProfile}
+        unreadCounts={unreadCounts}
+        userId={userId}
       />
       <div className="flex-1 flex flex-col relative">
         {/* Drag & Drop индикация */}
@@ -244,35 +271,39 @@ const ChatContainer = ({
         <ChatHeader
           selectedChat={selectedChat}
           selectedMessages={selectedMessages}
-          handleLogout={handleLogout}
           onChatNameClick={handleChatNameClick}
+          onSearchClick={handleSearchClick}
         />
         <div className="flex-1 overflow-hidden">
-          <ChatMessages
-            user={user}
-            userId={userId}
-            users={users}
-            selectedChat={selectedChat}
-            messages={messages}
-            selectedMessages={selectedMessages}
-            setContextMenu={setContextMenu}
-            handleMessageClick={handleMessageClick}
-            messagesEndRef={messagesEndRef}
-          />
+               <ChatMessages
+                 user={user}
+                 userId={userId}
+                 users={users}
+                 selectedChat={selectedChat}
+                 messages={messages}
+                 selectedMessages={selectedMessages}
+                 setSelectedMessages={setSelectedMessages}
+                 setContextMenu={setContextMenu}
+                 handleMessageClick={handleMessageClick}
+                 messagesEndRef={messagesEndRef}
+                 highlightedMessageId={highlightedMessageId}
+               />
         </div>
-        <ContextMenu
-          contextMenu={contextMenu}
-          setContextMenu={setContextMenu}
-          contextMenuRef={contextMenuRef}
-          handleEditMessage={handleEditMessage}
-          handleDeleteMessage={handleDeleteMessage}
-          handleSelectMessage={handleSelectMessage}
-          handleForwardMessage={handleForwardMessage}
-          user={user}
-          userId={userId}
-          users={users}
-          selectedMessages={selectedMessages}
-        />
+               <ContextMenu
+                 contextMenu={contextMenu}
+                 setContextMenu={setContextMenu}
+                 contextMenuRef={contextMenuRef}
+                 handleEditMessage={handleEditMessage}
+                 handleDeleteMessage={handleDeleteMessage}
+                 handleDeleteSelectedMessages={handleDeleteSelectedMessages}
+                 handleSelectMessage={handleSelectMessage}
+                 handleForwardMessage={handleForwardMessage}
+                 user={user}
+                 userId={userId}
+                 users={users}
+                 selectedMessages={selectedMessages}
+                 selectedChat={selectedChat}
+               />
         <ForwardModal
           showForwardModal={showForwardModal}
           setShowForwardModal={setShowForwardModal}
@@ -285,12 +316,20 @@ const ChatContainer = ({
           onClose={() => setShowUserInfoModal(false)}
           userInfo={selectedUserInfo}
         />
-        <UserProfileModal
-          isOpen={showUserProfileModal}
-          onClose={() => setShowUserProfileModal(false)}
-          userInfo={selectedUserInfo || currentUserInfo}
-          onEdit={handleEditProfileFromModal}
-          isCurrentUser={selectedUserInfo ? selectedUserInfo.userId === currentUserInfo?.userId : true}
+               <UserProfileModal
+                 isOpen={showUserProfileModal}
+                 onClose={() => setShowUserProfileModal(false)}
+                 userInfo={selectedUserInfo || currentUserInfo}
+                 onEdit={handleEditProfileFromModal}
+                 isCurrentUser={selectedUserInfo ? selectedUserInfo.userId === currentUserInfo?.userId : true}
+                 onLogout={handleLogout}
+               />
+        <ChatStatsModal
+          isOpen={showChatStatsModal}
+          onClose={() => setShowChatStatsModal(false)}
+          selectedChat={selectedChat}
+          messages={messages}
+          users={users}
         />
         <ProfileEditModal
           isOpen={showProfileEditModal}
@@ -332,6 +371,16 @@ const ChatContainer = ({
           />
         )}
       </div>
+      
+      {/* Поиск по сообщениям */}
+      <MessageSearch
+        isOpen={showMessageSearch}
+        onClose={() => setShowMessageSearch(false)}
+        messages={messages}
+        selectedChat={selectedChat}
+        users={users}
+        onMessageClick={handleSearchMessageClick}
+      />
     </div>
   );
 };

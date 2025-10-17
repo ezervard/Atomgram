@@ -7,12 +7,14 @@ const ContextMenu = ({
   contextMenuRef,
   handleEditMessage,
   handleDeleteMessage,
+  handleDeleteSelectedMessages,
   handleSelectMessage,
   handleForwardMessage,
   user,
   userId,
   users,
   selectedMessages,
+  selectedChat,
 }) => {
   const handleCopyText = () => {
     if (contextMenu.message && contextMenu.message.text) {
@@ -62,6 +64,41 @@ const ContextMenu = ({
       setContextMenu({ visible: false, x: 0, y: 0, message: null });
     }
   };
+
+  const handleDownloadFile = async (file) => {
+    try {
+      const fileName = file.filename || file.originalName || file.name || 'файл';
+      const fileUrl = `http://10.185.101.19:8080${file.url}`;
+      
+      // Получаем файл по URL
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      
+      // Создаем URL для blob
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Создаем ссылку для скачивания
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      
+      // Добавляем в DOM, кликаем и удаляем
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Освобождаем память
+      window.URL.revokeObjectURL(blobUrl);
+      
+      toast.success(`Скачивание файла: ${fileName}`);
+      setContextMenu({ visible: false, x: 0, y: 0, message: null });
+    } catch (error) {
+      console.error('Ошибка скачивания файла:', error);
+      toast.error('Ошибка скачивания файла');
+      setContextMenu({ visible: false, x: 0, y: 0, message: null });
+    }
+  };
   if (!contextMenu.visible || !contextMenu.message) return null;
 
   // Функция для определения, является ли сообщение от текущего пользователя
@@ -82,6 +119,7 @@ const ContextMenu = ({
 
   const isOwnMessage = isCurrentUserMessage(contextMenu.message);
   const isForwardedMessage = contextMenu.message.forwardedFrom || contextMenu.message.originalMessage;
+  const isPrivateChat = selectedChat?.type === 'PRIVATE';
 
   return (
     <div
@@ -104,7 +142,7 @@ const ContextMenu = ({
             Редактировать
           </li>
         )}
-        {isOwnMessage && (
+        {(isOwnMessage || isPrivateChat) && (
           <li
             className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
             onClick={() => {
@@ -115,6 +153,17 @@ const ContextMenu = ({
             Удалить
           </li>
         )}
+        {selectedMessages.length > 0 && (
+          <li
+            className="px-4 py-2 hover:bg-red-100 cursor-pointer text-red-600"
+            onClick={() => {
+              handleDeleteSelectedMessages();
+              console.log('Выбрано удаление выделенных сообщений:', selectedMessages.length);
+            }}
+          >
+            Удалить выделенные ({selectedMessages.length})
+          </li>
+        )}
         {contextMenu.message.text && (
           <li
             className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
@@ -122,6 +171,31 @@ const ContextMenu = ({
           >
             Копировать текст
           </li>
+        )}
+        {contextMenu.message.files && contextMenu.message.files.length > 0 && (
+          <>
+            {contextMenu.message.files.length === 1 ? (
+              <li
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  handleDownloadFile(contextMenu.message.files[0]);
+                  console.log('Скачивание файла:', contextMenu.message.files[0]);
+                }}
+              >
+                Скачать файл
+              </li>
+            ) : (
+              <li
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  contextMenu.message.files.forEach(file => handleDownloadFile(file));
+                  console.log('Скачивание всех файлов:', contextMenu.message.files.length);
+                }}
+              >
+                Скачать все файлы ({contextMenu.message.files.length})
+              </li>
+            )}
+          </>
         )}
         <li
           className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
