@@ -8,16 +8,20 @@ const messageSchema = new mongoose.Schema({
   fullName: String, // Полное имя пользователя (для обратной совместимости)
   text: String, // Текст сообщения
   type: { type: String, default: 'text' }, // text или file
-  timestamp: Date, // Время отправки
+  timestamp: { type: Date, default: Date.now }, // Время отправки
   edited: { type: Boolean, default: false }, // Флаг редактирования
   forwardedFrom: { type: String, required: false }, // Имя пользователя, от которого переслано
   originalMessage: { type: String, required: false }, // ID оригинального сообщения
   files: [{
-    name: { type: String, required: false },
+    filename: { type: String, required: false },
+    originalName: { type: String, required: false },
+    mimetype: { type: String, required: false },
     size: { type: Number, required: false },
-    type: { type: String, required: false },
     url: { type: String, required: false },
+    uploadedAt: { type: Date, default: Date.now },
   }],
+}, {
+  timestamps: true // Автоматически добавляет createdAt и updatedAt
 });
 
 module.exports = mongoose.model('Message', messageSchema);

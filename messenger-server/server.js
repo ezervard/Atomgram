@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chats');
 const messageRoutes = require('./routes/messages');
 const socketHandler = require('./socket/index'); // Импорт улучшенного socket handler
+const { createGraphQLServer } = require('./graphql/server-simple');
 
 const app = express();
 const server = http.createServer(app);
@@ -42,17 +43,23 @@ app.set('io', io);
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/grok_messenger_new', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-}).then(() => {
+}).then(async () => {
   console.log('Подключено к MongoDB');
+  
+  // Инициализация Socket.io с улучшенным handler
+  socketHandler(io);
+  
+  // Инициализация GraphQL сервера
+  await createGraphQLServer(app, server, io);
+  
+  const PORT = process.env.PORT || 8080;
+  const HOST = process.env.HOST || '10.185.101.19';
+  server.listen(PORT, HOST, () => {
+    console.log(`Сервер запущен на ${HOST}:${PORT}`);
+    console.log(`REST API доступен на ${HOST}:${PORT}/auth, /chats, /messages`);
+    console.log(`GraphQL API доступен на ${HOST}:${PORT}/graphql`);
+    console.log(`GraphQL Playground доступен на ${HOST}:${PORT}/graphql`);
+  });
 }).catch((err) => {
   console.error('Ошибка подключения к MongoDB:', err.message);
-});
-
-// Инициализация Socket.io с улучшенным handler
-socketHandler(io);
-
-const PORT = process.env.PORT || 8080;
-const HOST = process.env.HOST || '0.0.0.0';
-server.listen(PORT, HOST, () => {
-  console.log(`Сервер запущен на ${HOST}:${PORT}`);
 });

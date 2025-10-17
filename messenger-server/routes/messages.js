@@ -128,12 +128,15 @@ router.delete('/:messageId', authenticateToken, async (req, res) => {
     if (!chat || !chat.participants.includes(req.user.userId)) {
       return res.status(403).json({ error: 'Нет доступа к чату' });
     }
-    // Проверяем права на удаление по userId или username
-    if (message.userId && message.userId !== req.user.userId) {
-      return res.status(403).json({ error: 'Нет прав для удаления' });
-    }
-    if (!message.userId && message.username !== req.user.username) {
-      return res.status(403).json({ error: 'Нет прав для удаления' });
+    // В личных чатах разрешаем удаление любых сообщений
+    // В групповых чатах можно удалять только свои сообщения
+    if (chat.type !== 'private') {
+      if (message.userId && message.userId !== req.user.userId) {
+        return res.status(403).json({ error: 'Нет прав для удаления' });
+      }
+      if (!message.userId && message.username !== req.user.username) {
+        return res.status(403).json({ error: 'Нет прав для удаления' });
+      }
     }
     
     // Удаляем файлы с сервера, если они есть
@@ -277,20 +280,33 @@ router.post('/upload', authenticateToken, async (req, res) => {
       const originalName = Buffer.from(file.name, 'latin1').toString('utf8');
       const fileName = `${Date.now()}_${originalName}`;
       const filePath = path.join(__dirname, '../Uploads', fileName);
+      
+      console.log(`Сохраняем файл: ${originalName} -> ${fileName}`);
+      console.log(`Путь к файлу: ${filePath}`);
+      
+      // Создаем директорию если не существует
+      const uploadsDir = path.join(__dirname, '../Uploads');
+      await fs.mkdir(uploadsDir, { recursive: true });
+      
       await file.mv(filePath);
-      fileUrls.push(`/Uploads/${fileName}`);
+      const url = `/Uploads/${fileName}`;
+      fileUrls.push(url);
+      console.log(`Файл сохранен, URL: ${url}`);
     }
     const filesData = fileUrls.map((url, index) => {
       // Исправляем кодировку имени файла для сохранения в БД
       const originalName = Buffer.from(files[index].name, 'latin1').toString('utf8');
       const mimeType = getMimeType(originalName);
       console.log(`Файл ${originalName}: оригинальный тип ${files[index].type}, определенный тип ${mimeType}`);
-      return {
-        name: originalName,
+      const fileData = {
+        filename: originalName,
+        originalName: originalName,
+        mimetype: mimeType,
         size: files[index].size,
-        type: mimeType,
         url,
       };
+      console.log(`Созданы данные файла:`, fileData);
+      return fileData;
     });
     
     console.log('Данные файлов для сохранения:', filesData);
@@ -309,10 +325,13 @@ router.post('/upload', authenticateToken, async (req, res) => {
     console.log('Создаваемое сообщение:', JSON.stringify(message, null, 2));
     console.log('Тип files:', typeof message.files);
     console.log('files является массивом:', Array.isArray(message.files));
-    await message.save();
+    
+    const savedMessage = await message.save();
+    console.log('Сохраненное сообщение:', JSON.stringify(savedMessage, null, 2));
+    console.log('Файлы в сохраненном сообщении:', savedMessage.files);
     req.app.get('io').to(chatId).emit('message', message);
     console.log('Файлы загружены, сообщение создано:', message);
-    res.json({ fileUrls });
+    res.json({ message });
   } catch (err) {
     console.error('Ошибка загрузки файлов:', err);
     console.error('Stack trace:', err.stack);

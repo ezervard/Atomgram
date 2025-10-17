@@ -11,6 +11,9 @@ const chatSchema = new mongoose.Schema({
   type: { type: String, default: 'private' }, // Добавили default
   participants: [{ type: String }], // Хранит userId
   name: { type: String, default: null }, // Для групповых чатов
+  description: { type: String, default: null }, // Описание чата
+}, {
+  timestamps: true // Автоматически добавляет createdAt и updatedAt
 });
 
 module.exports = mongoose.model('Chat', chatSchema);

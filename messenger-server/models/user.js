@@ -17,6 +17,9 @@ const userSchema = new mongoose.Schema({
   fullName: String,
   status: { type: String, default: 'offline' },
   avatar: String, // URL аватара
+  lastSeen: { type: Date, default: Date.now },
+}, {
+  timestamps: true // Автоматически добавляет createdAt и updatedAt
 });
 
 module.exports = mongoose.model('User', userSchema);
